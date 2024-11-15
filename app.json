@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "urbansteam",
-    "slug": "urbansteam",
+    "name": "ShopEasy",
+    "slug": "shopEasy",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -13,9 +13,11 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.shopeasy.store"
     },
     "android": {
+      "package": "com.shopeasy.store",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
@@ -31,6 +33,14 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "5a87aff0-9342-4e28-86cc-641f7b9682fe"
+      }
     }
   }
 }
