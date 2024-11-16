@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useColorScheme } from "@/hooks/useColorScheme";
-import { Stack } from "expo-router";
+import { Slot } from "expo-router";
 import { useFonts } from "expo-font";
 import * as SplashScreen from "expo-splash-screen";
 import {
@@ -8,123 +8,63 @@ import {
   DefaultTheme,
   ThemeProvider,
 } from "@react-navigation/native";
-import { Provider, useSelector, useDispatch } from "react-redux";
+import { Provider } from "react-redux";
 import { store } from "@/store/configureStore";
-import { ActivityIndicator, SafeAreaView, View } from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { setUser } from "@/store/reducers/authReducer";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { View, ActivityIndicator } from "react-native";
 
-SplashScreen.preventAutoHideAsync();
+// Keep the splash screen visible while we fetch resources
+SplashScreen.preventAutoHideAsync().catch(() => {
+  /* reloading the app might trigger some race conditions, ignore them */
+});
 
-const RootLayoutNav = () => {
-  const [initialized, setInitialized] = useState(false);
-  const { loggedUser } = useSelector((state) => state.entities.authReducer);
-  const dispatch = useDispatch();
+export default function RootLayout() {
+  const colorScheme = useColorScheme();
+  const [isReady, setIsReady] = useState(false);
+  
+  const [fontsLoaded] = useFonts({
+    SpaceMono: require("../assets/fonts/SpaceMono-Regular.ttf"),
+  });
 
   useEffect(() => {
-    const initializeApp = async () => {
+    async function prepare() {
       try {
-        const userString = await AsyncStorage.getItem("user");
-        if (userString) {
-          const user = JSON.parse(userString);
-          if (user) {
-            dispatch(setUser(user));
-          }
-        }
-      } catch (error) {
-        console.error("Error reading user from storage:", error);
+        // Pre-load fonts, make any API calls you need to do here
+        await Promise.all([]);
+      } catch (e) {
+        console.warn(e);
       } finally {
-        setInitialized(true);
+        // Tell the application to render
+        setIsReady(true);
       }
-    };
-    initializeApp();
+    }
+
+    prepare();
   }, []);
 
-  if (!initialized) {
+  useEffect(() => {
+    if (isReady && fontsLoaded) {
+      // Hide splash screen
+      SplashScreen.hideAsync().catch(console.warn);
+    }
+  }, [isReady, fontsLoaded]);
+
+  // Before rendering, we need to wait for our app to be ready
+  if (!isReady || !fontsLoaded) {
     return (
-      <View
-        style={{
-          flex: 1,
-          backgroundColor: "#fff",
-          justifyContent: "center",
-          alignItems: "center",
-        }}
-      >
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
         <ActivityIndicator size="large" color="#0000ff" />
       </View>
     );
   }
 
   return (
-    <Stack screenOptions={{ headerShown: false }}>
-      {!loggedUser ? (
-        // Auth Stack Group
-        <>
-          <Stack.Screen
-            name="(auth)"
-            options={{
-              headerShown: false,
-              gestureEnabled: false,
-            }}
-          />
-        </>
-      ) : (
-        // App Stack Group
-        <>
-          <Stack.Screen
-            name="(app)"
-            options={{
-              headerShown: false,
-              gestureEnabled: false,
-            }}
-          />
-          
-        </>
-      )}
-    </Stack>
-  );
-};
-
-export default function RootLayout() {
-  const colorScheme = useColorScheme();
-  const [loaded, error] = useFonts({
-    SpaceMono: require("../assets/fonts/SpaceMono-Regular.ttf"),
-  });
-
-  useEffect(() => {
-    if (error) {
-      console.error("Font loading error:", error);
-    }
-  }, [error]);
-
-  useEffect(() => {
-    if (loaded) {
-      const hideSplash = async () => {
-        try {
-          await SplashScreen.hideAsync();
-        } catch (error) {
-          console.warn("Error hiding splash screen:", error);
-        }
-      };
-
-      // const timer = setTimeout(hideSplash, 3000);
-      // return () => clearTimeout(timer);
-    }
-  }, [loaded]);
-
-  if (!loaded) {
-    return null;
-  }
-
-  return (
-    <SafeAreaView style={{ flex: 1 }}>
+    <GestureHandlerRootView style={{ flex: 1 }}>
       <Provider store={store}>
-        <ThemeProvider
-          value={colorScheme === "dark" ? DarkTheme : DefaultTheme}
-        >
-          <RootLayoutNav />
+        <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
+          <Slot />
         </ThemeProvider>
       </Provider>
-    </SafeAreaView>
+    </GestureHandlerRootView>
   );
 }

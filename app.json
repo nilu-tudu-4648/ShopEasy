@@ -1,26 +1,26 @@
 {
   "expo": {
-    "name": "ShopEasy",
-    "slug": "shopEasy",
+    "name": "DeskTime",
+    "slug": "desktime",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "myapp",
+    "scheme": "desktime",
     "userInterfaceStyle": "automatic",
     "splash": {
       "image": "./assets/images/splash.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#4A6FFF"
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.shopeasy.store"
+      "bundleIdentifier": "com.desktime.app"
     },
     "android": {
-      "package": "com.shopeasy.store",
+      "package": "com.desktime.app",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#4A6FFF"
       }
     },
     "web": {
@@ -39,8 +39,9 @@
         "origin": false
       },
       "eas": {
-        "projectId": "5a87aff0-9342-4e28-86cc-641f7b9682fe"
+        "projectId": "57fbcfc8-9439-4f7f-a922-a81082da5964"
       }
-    }
+    },
+    "owner": "nilesh98"
   }
 }

@@ -26,6 +26,7 @@ const LoginScreen = () => {
       const user = { user: { id: 1, name: "Test User" } };
       await AsyncStorage.setItem("user", JSON.stringify(user));
       dispatch(setUser(user));
+      router.replace("/(app)/HomeScreen")
     } catch (error) {
       console.log(error);
     }
