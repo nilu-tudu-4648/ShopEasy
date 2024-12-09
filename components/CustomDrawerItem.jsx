@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useRouter, usePathname } from "expo-router";
+import { compPadding, radius, radius1, Size4 } from '../constants/Sizes';
 
 const CustomDrawerItem = ({ icon, label, route }) => {
   const router = useRouter();
@@ -35,10 +36,9 @@ const styles = StyleSheet.create({
   drawerItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
-    marginHorizontal: 8,
-    marginVertical: 4,
-    borderRadius: 12,
+    padding: compPadding,
+    marginHorizontal: Size4,
+    borderRadius: radius,
   },
   activeDrawerItem: {
     backgroundColor: '#4A6FFF15',

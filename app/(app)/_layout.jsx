@@ -8,7 +8,7 @@ import CustomDrawerItem from "../../components/CustomDrawerItem";
 
 const CustomDrawerContent = ({ state, navigation, descriptors }) => {
   const pathname = usePathname();
-
+  const {loggedUser} = useSelector((state) => state.entities.authReducer);
   const drawerItems = [
     {
       label: 'Home',
@@ -36,7 +36,7 @@ const CustomDrawerContent = ({ state, navigation, descriptors }) => {
       route: '/NotificationsScreen'
     }
   ];
-
+console.log(loggedUser)
   return (
     <View style={{ flex: 1 }}>
       <LinearGradient
@@ -51,8 +51,8 @@ const CustomDrawerContent = ({ state, navigation, descriptors }) => {
             source={{ uri: "https://via.placeholder.com/60" }}
             style={styles.userImage}
           />
-          <Text style={styles.userName}>John Doe</Text>
-          <Text style={styles.userEmail}>john.doe@example.com</Text>
+          <Text style={styles.userName}>{loggedUser.user.name}</Text>
+          <Text style={styles.userEmail}>{loggedUser.user.email}</Text>
           {/* <View style={styles.userStats}>
             <View style={styles.statItem}>
               <Text style={styles.statValue}>24</Text>
