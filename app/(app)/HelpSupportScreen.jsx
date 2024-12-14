@@ -51,7 +51,7 @@ const HelpSupportScreen = () => {
             </View>
             <View style={styles.contactInfo}>
               <Text style={styles.contactLabel}>Email Support</Text>
-              <Text style={styles.contactValue}>support@DeskTime.com</Text>
+              <Text style={styles.contactValue}>support@driveLoop.com</Text>
               <Text style={styles.contactHours}>24/7 Support</Text>
             </View>
             <ArrowRight size={20} color="#66666680" />

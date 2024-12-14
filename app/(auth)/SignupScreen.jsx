@@ -197,7 +197,7 @@ const SignupScreen = () => {
               <View style={styles.headerContainer}>
                 <Text style={styles.title}>Create Account</Text>
                 <Text style={styles.subtitle}>
-                  Join DeskTime to manage your study space efficiently
+                  Join DriveLoop to manage your study space efficiently
                 </Text>
               </View>
 

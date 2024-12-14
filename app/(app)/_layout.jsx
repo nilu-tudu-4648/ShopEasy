@@ -5,6 +5,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { View, Text, Image, StyleSheet, TouchableOpacity } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import CustomDrawerItem from "../../components/CustomDrawerItem";
+import { routeNames } from "../../constants/data";
 
 const CustomDrawerContent = ({ state, navigation, descriptors }) => {
   const pathname = usePathname();
@@ -21,22 +22,16 @@ const CustomDrawerContent = ({ state, navigation, descriptors }) => {
       route: '/ProfileScreen'
     },
     {
-      label: 'My Plans',
-      icon: <Ionicons name="calendar-outline" size={24} color={pathname === '/MyPlansScreen' ? '#4A6FFF' : '#666666'} />,
-      route: '/MyPlansScreen'
+      label: 'My Bookings',
+      icon: <Ionicons name="calendar-outline" size={24} color={pathname === routeNames.MyBookingsScreen ? '#4A6FFF' : '#666666'} />,
+      route: routeNames.MyBookingsScreen
     },
     {
       label: 'Help & Support',
       icon: <Ionicons name="help-circle-outline" size={24} color={pathname === '/HelpSupportScreen' ? '#4A6FFF' : '#666666'} />,
       route: '/HelpSupportScreen'
     },
-    {
-      label: 'Notifications',
-      icon: <Ionicons name="notifications-outline" size={24} color={pathname === '/NotificationsScreen' ? '#4A6FFF' : '#666666'} />,
-      route: '/NotificationsScreen'
-    }
   ];
-console.log(loggedUser)
   return (
     <View style={{ flex: 1 }}>
       <LinearGradient
@@ -44,7 +39,7 @@ console.log(loggedUser)
         style={styles.drawerHeader}
       >
         <View style={styles.headerTop}>
-          <Text style={styles.appName}>DeskTime</Text>
+          <Text style={styles.appName}>DriveLoop</Text>
         </View>
         <View style={styles.userInfo}>
           <Image
@@ -53,17 +48,6 @@ console.log(loggedUser)
           />
           <Text style={styles.userName}>{loggedUser.user.name}</Text>
           <Text style={styles.userEmail}>{loggedUser.user.email}</Text>
-          {/* <View style={styles.userStats}>
-            <View style={styles.statItem}>
-              <Text style={styles.statValue}>24</Text>
-              <Text style={styles.statLabel}>Visits</Text>
-            </View>
-            <View style={styles.statDivider} />
-            <View style={styles.statItem}>
-              <Text style={styles.statValue}>42h</Text>
-              <Text style={styles.statLabel}>Total</Text>
-            </View>
-          </View> */}
         </View>
       </LinearGradient>
 
@@ -77,13 +61,6 @@ console.log(loggedUser)
           />
         ))}
       </View>
-{/* 
-      <TouchableOpacity style={styles.logoutButton}>
-        <View style={styles.logoutIcon}>
-          <Ionicons name="log-out-outline" size={24} color="#FF5252" />
-        </View>
-        <Text style={styles.logoutText}>Logout</Text>
-      </TouchableOpacity> */}
     </View>
   );
 };
@@ -101,18 +78,17 @@ export default function AppLayout() {
         headerTitleStyle: {
           fontWeight: "bold",
         },
-        headerTitle: "DeskTime",
+        headerTitle: "DriveLoop",
         headerTitleAlign: "center",
         drawerStyle: { width: "85%" },
         swipeEdgeWidth: 100,
       }}
       drawerContent={(props) => <CustomDrawerContent {...props} />}
     >
-      <Drawer.Screen name="HomeScreen" />
-      <Drawer.Screen name="ProfileScreen" />
-      <Drawer.Screen name="MyPlansScreen" />
-      <Drawer.Screen name="HelpSupportScreen" />
-      <Drawer.Screen name="NotificationsScreen" />
+      <Drawer.Screen name={routeNames.HomeScreen} />
+      <Drawer.Screen name={routeNames.ProfileScreen} />
+      <Drawer.Screen name={routeNames.MyBookingsScreen} />
+      <Drawer.Screen name={routeNames.HelpSupportScreen} />
     </Drawer>
   );
 }

@@ -177,7 +177,7 @@ const LoginScreen = () => {
           <View style={styles.headerContainer}>
             <Text style={styles.title}>Welcome Back!</Text>
             <Text style={styles.subtitle}>
-              Sign in to continue using DeskTime
+              Sign in to continue using DriveLoop
             </Text>
           </View>
 

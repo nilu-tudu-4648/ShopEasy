@@ -31,17 +31,6 @@ export const auth = (() => {
   }
 })();
 
-// Optional: Enable offline persistence for Firestore
-// try {
-//   const settings = {
-//     cacheSizeBytes: 10485760, // 10 MB
-//     experimentalAutoDetectLongPolling: true,
-//   };
-//   db.settings(settings);
-// } catch (error) {
-//   console.log("Error configuring persistence:", error);
-// }
-
 // Helper function to check auth state
 export const checkAuthState = async () => {
   try {
