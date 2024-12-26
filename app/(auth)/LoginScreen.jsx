@@ -28,8 +28,8 @@ const isSmallDevice = width < 375;
 
 const LoginScreen = () => {
   const [formData, setFormData] = useState({
-    email: "",
-    password: "",
+    email: "nilunilesh84@gmail.com",
+    password: "Apple4648@",
   });
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
@@ -66,7 +66,6 @@ const LoginScreen = () => {
       await updateDoc(doc(db, 'users', userCredential.user.uid), {
         lastLoginAt: new Date(),
       });
-    console.log(userData,'Login')
       // Save to local storage if remember me is checked
       if (rememberMe) {
         await AsyncStorage.setItem('user', JSON.stringify({

@@ -1,35 +1,72 @@
 import { Drawer } from "expo-router/drawer";
 import { useSelector } from "react-redux";
-import { Redirect, usePathname } from "expo-router";
+import { usePathname } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { View, Text, Image, StyleSheet, TouchableOpacity } from "react-native";
+import { View, Text, Image, StyleSheet } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import CustomDrawerItem from "../../components/CustomDrawerItem";
 import { routeNames } from "../../constants/data";
 
-const CustomDrawerContent = ({ state, navigation, descriptors }) => {
+const CustomDrawerContent = () => {
   const pathname = usePathname();
-  const {loggedUser} = useSelector((state) => state.entities.authReducer);
+  const { loggedUser } = useSelector((state) => state.entities.authReducer);
   const drawerItems = [
     {
-      label: 'Home',
-      icon: <Ionicons name="home-outline" size={24} color={pathname === '/HomeScreen' ? '#4A6FFF' : '#666666'} />,
-      route: '/HomeScreen'
+      label: "Home",
+      icon: (
+        <Ionicons
+          name="home-outline"
+          size={24}
+          color={pathname === "/HomeScreen" ? "#4A6FFF" : "#666666"}
+        />
+      ),
+      route: "/HomeScreen",
     },
     {
-      label: 'Profile',
-      icon: <Ionicons name="person-outline" size={24} color={pathname === '/ProfileScreen' ? '#4A6FFF' : '#666666'} />,
-      route: '/ProfileScreen'
+      label: "Profile", 
+      icon: (
+        <Ionicons
+          name="person-outline"
+          size={24}
+          color={pathname === "/ProfileScreen" ? "#4A6FFF" : "#666666"}
+        />
+      ),
+      route: "/ProfileScreen",
+    },
+    ...(loggedUser?.admin ? [{
+      label: "Add Vehicle",
+      icon: (
+        <Ionicons
+          name="car-outline"
+          size={24}
+          color={pathname === "/AddVehicleScreen" ? "#4A6FFF" : "#666666"}
+        />
+      ),
+      route: "/AddVehicleScreen",
+    }] : []),
+    {
+      label: "My Bookings",
+      icon: (
+        <Ionicons
+          name="calendar-outline"
+          size={24}
+          color={
+            pathname === routeNames.MyBookingsScreen ? "#4A6FFF" : "#666666"
+          }
+        />
+      ),
+      route: routeNames.MyBookingsScreen,
     },
     {
-      label: 'My Bookings',
-      icon: <Ionicons name="calendar-outline" size={24} color={pathname === routeNames.MyBookingsScreen ? '#4A6FFF' : '#666666'} />,
-      route: routeNames.MyBookingsScreen
-    },
-    {
-      label: 'Help & Support',
-      icon: <Ionicons name="help-circle-outline" size={24} color={pathname === '/HelpSupportScreen' ? '#4A6FFF' : '#666666'} />,
-      route: '/HelpSupportScreen'
+      label: "Help & Support",
+      icon: (
+        <Ionicons
+          name="help-circle-outline"
+          size={24}
+          color={pathname === "/HelpSupportScreen" ? "#4A6FFF" : "#666666"}
+        />
+      ),
+      route: "/HelpSupportScreen",
     },
   ];
   return (
@@ -46,8 +83,8 @@ const CustomDrawerContent = ({ state, navigation, descriptors }) => {
             source={{ uri: "https://via.placeholder.com/60" }}
             style={styles.userImage}
           />
-          <Text style={styles.userName}>{loggedUser.user.name}</Text>
-          <Text style={styles.userEmail}>{loggedUser.user.email}</Text>
+          <Text style={styles.userName}>{loggedUser?.name}</Text>
+          <Text style={styles.userEmail}>{loggedUser?.email}</Text>
         </View>
       </LinearGradient>
 
@@ -96,19 +133,17 @@ export default function AppLayout() {
 const styles = StyleSheet.create({
   drawerHeader: {
     padding: 20,
-    // paddingTop: 60,
-    // paddingBottom: 30,
   },
   headerTop: {
     marginBottom: 20,
   },
   appName: {
     fontSize: 24,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
+    fontWeight: "bold",
+    color: "#FFFFFF",
   },
   userInfo: {
-    alignItems: 'center',
+    alignItems: "center",
   },
   userImage: {
     width: 80,
@@ -130,29 +165,29 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   userStats: {
-    flexDirection: 'row',
-    backgroundColor: 'rgba(255,255,255,0.1)',
+    flexDirection: "row",
+    backgroundColor: "rgba(255,255,255,0.1)",
     borderRadius: 12,
     padding: 16,
-    width: '100%',
+    width: "100%",
   },
   statItem: {
     flex: 1,
-    alignItems: 'center',
+    alignItems: "center",
   },
   statValue: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 20,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   statLabel: {
-    color: 'rgba(255,255,255,0.8)',
+    color: "rgba(255,255,255,0.8)",
     fontSize: 12,
     marginTop: 4,
   },
   statDivider: {
     width: 1,
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    backgroundColor: "rgba(255,255,255,0.2)",
     marginHorizontal: 16,
   },
   drawerContent: {
@@ -160,26 +195,26 @@ const styles = StyleSheet.create({
     paddingTop: 9,
   },
   logoutButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     padding: 16,
     marginHorizontal: 8,
     marginBottom: 20,
     borderRadius: 12,
-    backgroundColor: '#FFF1F1',
+    backgroundColor: "#FFF1F1",
   },
   logoutIcon: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     marginRight: 12,
-    backgroundColor: '#FFE5E5',
+    backgroundColor: "#FFE5E5",
   },
   logoutText: {
     fontSize: 16,
-    color: '#FF5252',
-    fontWeight: '600',
+    color: "#FF5252",
+    fontWeight: "600",
   },
 });

@@ -24,7 +24,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { setUser } from "@/store/reducers/authReducer";
 import { useDispatch } from "react-redux";
 import { LinearGradient } from "expo-linear-gradient";
-
+import AppToast from "@/components/AppToast";
 const { width, height } = Dimensions.get("window");
 const isSmallDevice = width < 375;
 
@@ -126,7 +126,8 @@ const SignupScreen = () => {
         currentBooking: null,
         createdAt: serverTimestamp(),
         lastLoginAt: serverTimestamp(),
-        updatedAt: serverTimestamp()
+        updatedAt: serverTimestamp(),
+        admin: false
       };
 
       await setDoc(doc(db, 'users', userCredential.user.uid), userDoc);
@@ -144,8 +145,7 @@ const SignupScreen = () => {
 
     } catch (error) {
       console.error('Signup error:', error);
-      Alert.alert(
-        'Registration Failed',
+      AppToast.show(
         error.code === 'auth/email-already-in-use'
           ? 'This email is already registered. Please try signing in.'
           : 'An error occurred during registration. Please try again.'

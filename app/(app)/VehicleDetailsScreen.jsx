@@ -5,7 +5,6 @@ import {
   ScrollView,
   FlatList,
   Dimensions,
-  Platform,
 } from "react-native";
 import { Text, Card, Button, DateTimePicker, Image } from "react-native-ui-lib";
 import { Ionicons } from "@expo/vector-icons";
@@ -17,11 +16,12 @@ const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const VehicleDetailsScreen = () => {
   const router = useRouter();
   const { vehicle } = useLocalSearchParams();
-
   const vehicleData = JSON.parse(vehicle);
 
   const [startDate, setStartDate] = useState(new Date());
   const [endDate, setEndDate] = useState(new Date());
+  const [startTime, setStartTime] = useState(new Date());
+  const [endTime, setEndTime] = useState(new Date());
 
   const vehicleImages = [
     "https://via.placeholder.com/300",
@@ -29,8 +29,6 @@ const VehicleDetailsScreen = () => {
     "https://via.placeholder.com/300",
   ];
 
-  const vehicleName = vehicleData?.name || "Vehicle Name Not Available";
-  const vehiclePrice = vehicleData?.price || "0";
   const vehicleRating = vehicleData?.rating || "0";
   const vehicleLocation = vehicleData?.location || "Location Not Available";
 
@@ -42,12 +40,19 @@ const VehicleDetailsScreen = () => {
 
   const handleBooking = () => {
     try {
+      // Combine date and time
+      const startDateTime = new Date(startDate);
+      startDateTime.setHours(startTime.getHours(), startTime.getMinutes());
+      
+      const endDateTime = new Date(endDate);
+      endDateTime.setHours(endTime.getHours(), endTime.getMinutes());
+
       router.push({
         pathname: routeNames.BookingConfirmationScreen,
         params: {
           vehicle: JSON.stringify(vehicleData),
-          startDate: startDate.toISOString(),
-          endDate: endDate.toISOString(),
+          startDate: startDateTime.toISOString(),
+          endDate: endDateTime.toISOString(),
         },
       });
     } catch (error) {
@@ -75,7 +80,7 @@ const VehicleDetailsScreen = () => {
             {vehicleData?.name}
           </Text>
           <Text text50 style={styles.price}>
-            ${vehicleData?.price}/day
+          ₹{vehicleData?.price}/day
           </Text>
         </View>
 
@@ -98,27 +103,56 @@ const VehicleDetailsScreen = () => {
         </Text>
 
         <View style={styles.datePickerContainer}>
-          <Text text70 style={styles.dateLabel}>
-            Start Date
-          </Text>
-          <DateTimePicker
-            mode="date"
-            value={startDate}
-            onChange={(date) => setStartDate(date)}
-            minimumDate={new Date()}
-            containerStyle={styles.datePickerStyle}
-          />
+          <View style={styles.dateTimeRow}>
+            <View style={styles.dateTimeColumn}>
+              <Text text70 style={styles.dateLabel}>
+                Start Date
+              </Text>
+              <DateTimePicker
+                mode="date"
+                value={startDate}
+                minimumDate={new Date()}
+                containerStyle={styles.datePickerStyle}
+              />
+            </View>
+            <View style={styles.dateTimeColumn}>
+              <Text text70 style={styles.dateLabel}>
+                Start Time
+              </Text>
+              <DateTimePicker
+                mode="time"
+                value={startTime}
+                onChange={(time) => setStartTime(time)}
+                containerStyle={styles.datePickerStyle}
+              />
+            </View>
+          </View>
 
-          <Text text70 style={styles.dateLabel}>
-            End Date
-          </Text>
-          <DateTimePicker
-            mode="date"
-            value={endDate}
-            onChange={(date) => setEndDate(date)}
-            minimumDate={startDate}
-            containerStyle={styles.datePickerStyle}
-          />
+          <View style={styles.dateTimeRow}>
+            <View style={styles.dateTimeColumn}>
+              <Text text70 style={styles.dateLabel}>
+                End Date
+              </Text>
+              <DateTimePicker
+                mode="date"
+                value={endDate}
+                onChange={(date) => setEndDate(date)}
+                minimumDate={startDate}
+                containerStyle={styles.datePickerStyle}
+              />
+            </View>
+            <View style={styles.dateTimeColumn}>
+              <Text text70 style={styles.dateLabel}>
+                End Time
+              </Text>
+              <DateTimePicker
+                mode="time"
+                value={endTime}
+                onChange={(time) => setEndTime(time)}
+                containerStyle={styles.datePickerStyle}
+              />
+            </View>
+          </View>
         </View>
 
         <Button
@@ -189,6 +223,15 @@ const styles = StyleSheet.create({
   },
   datePickerContainer: {
     marginBottom: 24,
+  },
+  dateTimeRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 16,
+  },
+  dateTimeColumn: {
+    flex: 1,
+    marginRight: 8,
   },
   dateLabel: {
     marginBottom: 8,

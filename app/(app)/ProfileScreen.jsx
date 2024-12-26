@@ -16,26 +16,29 @@ import {
 } from "react-native-ui-lib";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import { useDispatch, useSelector } from "react-redux";
+import { logoutUser } from "../firebase/helpers";
+import { routeNames } from "../../constants/data";
 
 const ProfileScreen = () => {
   const router = useRouter();
   const [isEditing, setIsEditing] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
-  const [profileData, setProfileData] = useState({
-    name: "John Doe",
-    email: "john.doe@example.com",
-    phone: "+1 234 567 8900",
-    address: "123 Main St, New York, NY",
-  });
-
+  const { loggedUser } = useSelector((state) => state.entities.authReducer);
+  const [profileData, setProfileData] = useState(loggedUser);
+  const dispatch = useDispatch();
   const [editedData, setEditedData] = useState({ ...profileData });
 
   const menuItems = [
-    {
-      icon: "car-outline",
-      title: "My Vehicles",
-      onPress: () => router.push("/my-vehicles"),
-    },
+    ...(loggedUser?.admin
+      ? [
+          {
+            icon: "car-outline",
+            title: "My Vehicles",
+            onPress: () => router.push(routeNames.MyVehiclesScreen),
+          },
+        ]
+      : []),
     {
       icon: "card-outline",
       title: "Payment Methods",
@@ -128,14 +131,6 @@ const ProfileScreen = () => {
               keyboardType="phone-pad"
               style={styles.input}
             />
-            <TextField
-              placeholder="Address"
-              value={editedData.address}
-              onChangeText={(text) =>
-                setEditedData({ ...editedData, address: text })
-              }
-              style={styles.input}
-            />
             <View style={styles.buttonRow}>
               <Button
                 label="Cancel"
@@ -166,9 +161,6 @@ const ProfileScreen = () => {
             <Text text70 style={styles.detail}>
               {profileData.phone}
             </Text>
-            <Text text70 style={styles.detail}>
-              {profileData.address}
-            </Text>
           </View>
         )}
       </Card>
@@ -198,7 +190,7 @@ const ProfileScreen = () => {
         outline
         outlineColor="#FF4444"
         style={styles.signOutButton}
-        onPress={() => router.replace("/login")}
+        onPress={() => logoutUser(router, dispatch)}
       />
     </ScrollView>
   );
