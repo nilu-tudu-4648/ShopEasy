@@ -1,4 +1,5 @@
 import { Stack } from "expo-router";
+import { routeNames } from "../../constants/data";
 
 export default function AuthLayout() {
   return (
@@ -7,21 +8,21 @@ export default function AuthLayout() {
       initialRouteName="LoginScreen"
     >
       <Stack.Screen
-        name="SignupScreen"
+        name={routeNames.SignupScreen}
         options={{
           headerShown: false,
           gestureEnabled: false,
         }}
       />
       <Stack.Screen
-        name="LoginScreen"
+        name={routeNames.LoginScreen}
         options={{
           headerShown: false,
           gestureEnabled: false,
         }}
       />
       <Stack.Screen
-        name="OtpScreen"
+        name={routeNames.OtpScreen}
         options={{
           headerShown: false,
           gestureEnabled: false,

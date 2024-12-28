@@ -244,4 +244,5 @@ export const routeNames = {
   PaymentScreen: "PaymentScreen",
   HelpSupportScreen: "HelpSupportScreen",
   MyVehiclesScreen: "MyVehiclesScreen",
+  AddVehicleScreen: "AddVehicleScreen",
 };

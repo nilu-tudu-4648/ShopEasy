@@ -11,7 +11,6 @@ import {
   ScrollView,
   Dimensions,
   StatusBar,
-  Alert,
   ActivityIndicator,
 } from "react-native";
 import { Checkbox } from "react-native-ui-lib";
@@ -25,6 +24,7 @@ import { setUser } from "@/store/reducers/authReducer";
 import { useDispatch } from "react-redux";
 import { LinearGradient } from "expo-linear-gradient";
 import AppToast from "@/components/AppToast";
+import { routeNames } from "@/constants/data";
 const { width, height } = Dimensions.get("window");
 const isSmallDevice = width < 375;
 
@@ -141,7 +141,7 @@ const SignupScreen = () => {
       
       await AsyncStorage.setItem("user", JSON.stringify(userData));
       dispatch(setUser(userData));
-      router.replace("/(app)/HomeScreen");
+      router.replace(`/(auth)/${routeNames.LoginScreen}`);
 
     } catch (error) {
       console.error('Signup error:', error);
@@ -197,7 +197,7 @@ const SignupScreen = () => {
               <View style={styles.headerContainer}>
                 <Text style={styles.title}>Create Account</Text>
                 <Text style={styles.subtitle}>
-                  Join DriveLoop to manage your study space efficiently
+                  Join DriveLoop to rent vehicles easily and safely
                 </Text>
               </View>
 

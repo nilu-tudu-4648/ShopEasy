@@ -76,7 +76,7 @@ const MyBookingsScreen = () => {
     fetchBookings();
   }, []);
 
-  const filteredBookings = userBookings.filter(booking => {
+  const filteredBookings = userBookings?.filter(booking => {
     const isUpcoming = booking.status === "scheduled";
     return selectedTab === 0 ? isUpcoming : !isUpcoming;
   });

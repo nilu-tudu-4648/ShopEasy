@@ -49,11 +49,6 @@ const ProfileScreen = () => {
       title: "Privacy Settings",
       onPress: () => router.push("/privacy-settings"),
     },
-    {
-      icon: "help-circle-outline",
-      title: "Help & Support",
-      onPress: () => router.push("/help-support"),
-    },
   ];
 
   const handleSave = () => {

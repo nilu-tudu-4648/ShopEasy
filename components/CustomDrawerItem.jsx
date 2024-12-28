@@ -1,12 +1,12 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useRouter, usePathname } from "expo-router";
-import { compPadding, radius, radius1, Size4 } from '../constants/Sizes';
+import { compPadding, radius, Size4 } from '../constants/Sizes';
 
 const CustomDrawerItem = ({ icon, label, route }) => {
   const router = useRouter();
   const pathname = usePathname();
-  const isActive = pathname === route;
+  const isActive = pathname === `/${route}`;
 
   return (
     <TouchableOpacity

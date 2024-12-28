@@ -17,33 +17,39 @@ const CustomDrawerContent = () => {
         <Ionicons
           name="home-outline"
           size={24}
-          color={pathname === "/HomeScreen" ? "#4A6FFF" : "#666666"}
+          color={pathname === `/${routeNames.HomeScreen}` ? "#4A6FFF" : "#666666"}
         />
       ),
-      route: "/HomeScreen",
+      route: routeNames.HomeScreen,
     },
     {
-      label: "Profile", 
+      label: "Profile",
       icon: (
         <Ionicons
           name="person-outline"
           size={24}
-          color={pathname === "/ProfileScreen" ? "#4A6FFF" : "#666666"}
+          color={pathname === `/${routeNames.ProfileScreen}` ? "#4A6FFF" : "#666666"}
         />
       ),
-      route: "/ProfileScreen",
+      route: routeNames.ProfileScreen,
     },
-    ...(loggedUser?.admin ? [{
-      label: "Add Vehicle",
-      icon: (
-        <Ionicons
-          name="car-outline"
-          size={24}
-          color={pathname === "/AddVehicleScreen" ? "#4A6FFF" : "#666666"}
-        />
-      ),
-      route: "/AddVehicleScreen",
-    }] : []),
+    ...(loggedUser?.admin
+      ? [
+          {
+            label: "Add Vehicle",
+            icon: (
+              <Ionicons
+                name="car-outline"
+                size={24}
+                color={
+                  pathname === `/${routeNames.AddVehicleScreen}` ? "#4A6FFF" : "#666666"
+                }
+              />
+            ),
+            route: routeNames.AddVehicleScreen,
+          },
+        ]
+      : []),
     {
       label: "My Bookings",
       icon: (
@@ -63,10 +69,12 @@ const CustomDrawerContent = () => {
         <Ionicons
           name="help-circle-outline"
           size={24}
-          color={pathname === "/HelpSupportScreen" ? "#4A6FFF" : "#666666"}
+          color={
+            pathname === `/${routeNames.HelpSupportScreen}` ? "#4A6FFF" : "#666666"
+          }
         />
       ),
-      route: "/HelpSupportScreen",
+      route: routeNames.HelpSupportScreen,
     },
   ];
   return (

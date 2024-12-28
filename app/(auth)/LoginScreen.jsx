@@ -28,8 +28,8 @@ const isSmallDevice = width < 375;
 
 const LoginScreen = () => {
   const [formData, setFormData] = useState({
-    email: "nilunilesh84@gmail.com",
-    password: "Apple4648@",
+    email: "",
+    password: "",
   });
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
