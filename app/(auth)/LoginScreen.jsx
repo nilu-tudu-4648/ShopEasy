@@ -19,8 +19,8 @@ import { Checkbox } from "react-native-ui-lib";
 import { useDispatch } from "react-redux";
 import { Ionicons } from "@expo/vector-icons";
 import InputField from "@/components/InputField";
-import { signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
-import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
+import { signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, signInWithRedirect } from 'firebase/auth';
+import { doc, getDoc, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore';
 import { auth, db } from '../firebase/firebaseConfig';
 
 const { width, height } = Dimensions.get("window");
@@ -28,8 +28,8 @@ const isSmallDevice = width < 375;
 
 const LoginScreen = () => {
   const [formData, setFormData] = useState({
-    email: "",
-    password: "",
+    email: "tudunilesh3@gmail.com",
+    password: "Apple4648@",
   });
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
@@ -120,8 +120,17 @@ const LoginScreen = () => {
     try {
       setLoading(true);
       const provider = new GoogleAuthProvider();
-      const result = await signInWithPopup(auth, provider);
       
+      // Use signInWithRedirect instead of signInWithPopup for React Native
+      await signInWithRedirect(auth, provider);
+      
+      // Get the sign-in result
+      const result = await getRedirectResult(auth);
+      
+      if (!result) {
+        throw new Error('Google sign in failed');
+      }
+
       // Check if user exists in Firestore
       const userDoc = await getDoc(doc(db, 'users', result.user.uid));
       
@@ -132,12 +141,50 @@ const LoginScreen = () => {
           name: result.user.displayName,
           email: result.user.email,
           phone: result.user.phoneNumber || '',
-          createdAt: new Date(),
-          lastLoginAt: new Date(),
           userType: 'user',
           isActive: true,
           visits: 0,
           totalStudyTime: 0,
+          currentBooking: null,
+          createdAt: serverTimestamp(),
+          lastLoginAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+          
+          // Initialize with empty plan
+          plan: {
+            name: null,
+            price: null,
+            hoursTotal: null,
+            hoursUsed: 0,
+            features: [],
+            startDate: null,
+            endDate: null,
+            status: 'pending',
+            autoRenew: true
+          },
+
+          // Initialize usage statistics
+          usage: {
+            currentMonthHours: 0,
+            totalHours: 0,
+            averageSessionLength: 0,
+            lastVisit: null,
+            visitHistory: [],
+            favoriteLocations: [],
+            preferences: {
+              preferredLocation: null,
+              preferredFloor: null,
+              preferredRoom: null
+            }
+          },
+
+          // Initialize billing information
+          billing: {
+            customerId: null,
+            subscriptionId: null,
+            paymentMethod: null,
+            billingHistory: []
+          }
         };
         
         await setDoc(doc(db, 'users', result.user.uid), newUser);
@@ -146,7 +193,7 @@ const LoginScreen = () => {
       } else {
         // Update existing user's last login
         await updateDoc(doc(db, 'users', result.user.uid), {
-          lastLoginAt: new Date(),
+          lastLoginAt: serverTimestamp(),
         });
         
         dispatch(setUser({ 

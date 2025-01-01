@@ -32,16 +32,23 @@ Typography.loadTypographies({
 
 const HomeScreen = () => {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
-  // firebase/initTables.js - Run this once to initialize tables
-
 
   const {loggedUser} = useSelector((state) => state.entities.authReducer);
+  console.log(loggedUser);
   const quickActions = [
     { icon: 'login-variant', label: 'Check In', route: 'stacks/CheckInOutScreen', color: Colors.primary },
     { icon: 'calendar-clock', label: 'My Plans', route: '/(app)/MyPlansScreen', color: Colors.secondary },
     { icon: 'account-cog', label: 'Profile', route: '/(app)/ProfileScreen', color: Colors.success }
   ];
+
+  const formatStudyTime = (totalHours) => {
+    const hours = Math.floor(totalHours || 0);
+    const minutes = Math.round(((totalHours || 0) - hours) * 60);
+    if (hours === 0) {
+      return `${minutes} mins`;
+    }
+    return minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`;
+  };
 
   const responsiveStyles = StyleSheet.create({
     content: {
@@ -72,7 +79,7 @@ const HomeScreen = () => {
           <View style={styles.avatarContainer}>
             <Avatar
               size={Math.min(70, width * 0.17)}
-              source={{ uri: 'https://via.placeholder.com/70' }}
+              source={{ uri: loggedUser?.user?.photoURL || 'https://via.placeholder.com/70' }}
               containerStyle={styles.avatar}
             />
             <View style={styles.welcomeText}>
@@ -82,13 +89,13 @@ const HomeScreen = () => {
           </View>
           <View style={styles.statsContainer}>
             <View style={styles.stat}>
-              <Text style={styles.statValue}>42</Text>
-              <Text style={styles.statLabel}>Hours Left</Text>
+              <Text style={styles.statValue}>{formatStudyTime(loggedUser?.user?.usage?.totalHours)}</Text>
+              <Text style={styles.statLabel}>Time Studied</Text>
             </View>
             <View style={styles.statDivider} />
             <View style={styles.stat}>
-              <Text style={styles.statValue}>23</Text>
-              <Text style={styles.statLabel}>Days Left</Text>
+              <Text style={styles.statValue}>{loggedUser?.user?.visits || 0}</Text>
+              <Text style={styles.statLabel}>Total Visits</Text>
             </View>
           </View>
         </View>
@@ -115,21 +122,22 @@ const HomeScreen = () => {
           </Card>
 
           <Card elevation={2} style={styles.planCard}>
-            <Text style={styles.cardTitle}>Premium Monthly</Text>
+            <Text style={styles.cardTitle}>{loggedUser?.user?.plan?.name || 'Basic Plan'}</Text>
             <View style={styles.progressBar}>
-              <View style={[styles.progress, { width: '70%' }]} />
+              <View style={[styles.progress, { width: `${(loggedUser?.user?.plan?.hoursUsed / loggedUser?.user?.plan?.hoursTotal * 100) || 0}%` }]} />
             </View>
-            <Text style={styles.timeRemaining}>42 hours remaining</Text>
+            <Text style={styles.timeRemaining}>
+              {((loggedUser?.user?.plan?.hoursTotal || 0) - (loggedUser?.user?.plan?.hoursUsed || 0)).toFixed(1)} hours remaining
+            </Text>
           </Card>
         </View>
 
         <View style={responsiveStyles.sideColumn}>
           <Card elevation={2} style={styles.activityCard}>
             <Text style={styles.cardTitle}>Recent Activity</Text>
-            {[
-              { type: 'login', time: 'Today, 9:30 AM', location: 'Main Library' },
-              { type: 'logout', time: 'Yesterday, 5:30 PM', location: 'Main Library' }
-            ].map((activity, index) => (
+            {(loggedUser?.user?.usage?.visitHistory || [
+              { type: 'login', time: 'No recent activity', location: 'N/A' }
+            ]).map((activity, index) => (
               <View key={index} style={styles.activityItem}>
                 <Icon 
                   name={activity.type === 'login' ? 'login' : 'logout'} 
@@ -138,9 +146,9 @@ const HomeScreen = () => {
                 />
                 <View style={styles.activityDetails}>
                   <Text style={styles.activityText}>
-                    {activity.type === 'login' ? 'Checked in at' : 'Checked out from'} {activity.location}
+                    {activity.type === 'login' ? 'Checked in at' : 'Checked out from'} Table {activity.tableId}
                   </Text>
-                  <Text style={styles.activityTime}>{activity.time}</Text>
+                  <Text style={styles.activityTime}>Room {activity.room}, Floor {activity.floor}</Text>
                 </View>
               </View>
             ))}

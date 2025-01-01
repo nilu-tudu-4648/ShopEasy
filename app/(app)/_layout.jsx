@@ -36,7 +36,9 @@ const CustomDrawerContent = ({ state, navigation, descriptors }) => {
       route: '/NotificationsScreen'
     }
   ];
-console.log(loggedUser)
+  if (!loggedUser) {
+    return <Redirect href="/LoginScreen" />;
+  }
   return (
     <View style={{ flex: 1 }}>
       <LinearGradient
@@ -51,19 +53,8 @@ console.log(loggedUser)
             source={{ uri: "https://via.placeholder.com/60" }}
             style={styles.userImage}
           />
-          <Text style={styles.userName}>{loggedUser.user.name}</Text>
-          <Text style={styles.userEmail}>{loggedUser.user.email}</Text>
-          {/* <View style={styles.userStats}>
-            <View style={styles.statItem}>
-              <Text style={styles.statValue}>24</Text>
-              <Text style={styles.statLabel}>Visits</Text>
-            </View>
-            <View style={styles.statDivider} />
-            <View style={styles.statItem}>
-              <Text style={styles.statValue}>42h</Text>
-              <Text style={styles.statLabel}>Total</Text>
-            </View>
-          </View> */}
+          <Text style={styles.userName}>{loggedUser.user?.name}</Text>
+          <Text style={styles.userEmail}>{loggedUser.user?.email}</Text>
         </View>
       </LinearGradient>
 
@@ -77,13 +68,6 @@ console.log(loggedUser)
           />
         ))}
       </View>
-{/* 
-      <TouchableOpacity style={styles.logoutButton}>
-        <View style={styles.logoutIcon}>
-          <Ionicons name="log-out-outline" size={24} color="#FF5252" />
-        </View>
-        <Text style={styles.logoutText}>Logout</Text>
-      </TouchableOpacity> */}
     </View>
   );
 };

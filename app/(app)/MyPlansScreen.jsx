@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet } from 'react-native';
 import {
   View,
@@ -6,15 +6,14 @@ import {
   Card,
   Button,
   Colors,
-  Typography,
-  BorderRadiuses
 } from 'react-native-ui-lib';
 import { LinearGradient } from 'expo-linear-gradient';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { useSelector } from 'react-redux';
 
 Colors.loadColors({
   primary: '#4A6FFF',
-  secondary: '#6B8AFF',
+  secondary: '#6B8AFF', 
   textGrey: '#666666',
   backgroundGrey: '#F8FAFC',
   cardBg: '#FFFFFF',
@@ -24,6 +23,42 @@ Colors.loadColors({
 });
 
 export default MyPlansScreen = () => {
+  const { loggedUser } = useSelector((state) => state.entities.authReducer);
+  console.log(JSON.stringify(loggedUser, null, 2));
+  const [userStats, setUserStats] = useState({
+    hoursLeft: 0,
+    daysLeft: 0,
+    totalStudyTime: 0,
+    visits: 0,
+    currentPlan: null,
+    planExpiry: null
+  });
+
+  useEffect(() => {
+    if (loggedUser?.user?.plan) {
+      const plan = loggedUser.user.plan;
+      const hoursLeft = plan.hoursTotal - plan.hoursUsed;
+      const today = new Date();
+      
+      // Handle the endDate from Firestore timestamp
+      const endDate = plan.endDate ? new Date(plan.endDate) : null;
+      const daysLeft = endDate ? Math.ceil((endDate - today) / (1000 * 60 * 60 * 24)) : 0;
+
+      setUserStats({
+        hoursLeft: Math.max(0, Math.round(hoursLeft || 0)),
+        daysLeft: Math.max(0, daysLeft),
+        totalStudyTime: loggedUser.user.totalStudyTime || 0,
+        visits: loggedUser.user.visits || 0,
+        currentPlan: plan.name || 'No Active Plan',
+        planExpiry: endDate ? endDate.toLocaleDateString('en-US', {
+          month: 'long',
+          day: 'numeric',
+          year: 'numeric'
+        }) : 'Not Started'
+      });
+    }
+  }, [loggedUser]);
+
   const plans = [
     {
       name: 'Premium Monthly',
@@ -35,7 +70,7 @@ export default MyPlansScreen = () => {
         { icon: 'desk', text: 'Reserved Seating' },
         { icon: 'wifi', text: 'High-Speed WiFi' }
       ],
-      current: true,
+      current: loggedUser?.user?.plan?.name === 'Premium Monthly',
       color: Colors.primary
     },
     {
@@ -48,10 +83,21 @@ export default MyPlansScreen = () => {
         { icon: 'desk', text: 'Open Seating' },
         { icon: 'wifi', text: 'Standard WiFi' }
       ],
-      current: false,
+      current: loggedUser?.user?.plan?.name === 'Basic Monthly',
       color: Colors.accent
     }
   ];
+
+  const handlePlanSelect = async (planName) => {
+    // TODO: Implement plan selection logic
+    console.log('Selected plan:', planName);
+  };
+
+  const calculateUsagePercentage = () => {
+    const hoursUsed = loggedUser?.user?.plan?.hoursUsed || 0;
+    const hoursTotal = loggedUser?.user?.plan?.hoursTotal || 1;
+    return Math.min((hoursUsed / hoursTotal) * 100, 100);
+  };
 
   return (
     <ScrollView style={styles.container}>
@@ -60,15 +106,14 @@ export default MyPlansScreen = () => {
           <Text style={styles.headerTitle}>My Plans</Text>
           <Text style={styles.headerSubtitle}>Manage your subscription</Text>
           
-          {/* Current Plan Stats */}
           <View style={styles.statsContainer}>
             <View style={styles.statItem}>
-              <Text style={styles.statValue}>42</Text>
+              <Text style={styles.statValue}>{userStats.hoursLeft}</Text>
               <Text style={styles.statLabel}>Hours Left</Text>
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statItem}>
-              <Text style={styles.statValue}>23</Text>
+              <Text style={styles.statValue}>{userStats.daysLeft}</Text>
               <Text style={styles.statLabel}>Days Left</Text>
             </View>
           </View>
@@ -82,15 +127,27 @@ export default MyPlansScreen = () => {
           <Card style={styles.currentPlanCard}>
             <View style={styles.planHeader}>
               <View>
-                <Text style={styles.planName}>Premium Monthly</Text>
-                <Text style={styles.planExpiry}>Active until May 15, 2024</Text>
+                <Text style={styles.planName}>{userStats.currentPlan}</Text>
+                <Text style={styles.planExpiry}>Active until {userStats.planExpiry}</Text>
               </View>
-              <Text style={styles.planPrice}>$29.99</Text>
+              <Text style={styles.planPrice}>
+                {loggedUser?.user?.plan?.price 
+                  ? `$${loggedUser.user.plan.price}` 
+                  : 'N/A'
+                }
+              </Text>
             </View>
             <View style={styles.usageBar}>
-              <View style={[styles.usageProgress, { width: '70%' }]} />
+              <View 
+                style={[
+                  styles.usageProgress, 
+                  { width: `${calculateUsagePercentage()}%` }
+                ]} 
+              />
             </View>
-            <Text style={styles.usageText}>42 hours remaining this month</Text>
+            <Text style={styles.usageText}>
+              {userStats.hoursLeft} hours remaining this month
+            </Text>
           </Card>
         </View>
 
@@ -126,6 +183,7 @@ export default MyPlansScreen = () => {
                 backgroundColor={plan.color}
                 style={styles.selectButton}
                 labelStyle={styles.buttonLabel}
+                onPress={() => handlePlanSelect(plan.name)}
               />
             )}
           </Card>

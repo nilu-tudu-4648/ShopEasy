@@ -49,11 +49,17 @@ export const formatTime = {
     },
   
     // Get duration between two timestamps in seconds
-    getDuration: (startTime, endTime) => {
-      if (!startTime || !endTime) return 0;
-      const start = new Date(startTime);
-      const end = new Date(endTime);
-      return Math.floor((end - start) / 1000);
+    getDuration: (seconds) => {
+      if (!seconds) return '0:00';
+      
+      const hours = Math.floor(seconds / 3600);
+      const minutes = Math.floor((seconds % 3600) / 60);
+      const remainingSeconds = seconds % 60;
+      
+      if (hours > 0) {
+        return `${hours}:${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`;
+      }
+      return `${minutes}:${String(remainingSeconds).padStart(2, '0')}`;
     },
   
     // Format remaining time

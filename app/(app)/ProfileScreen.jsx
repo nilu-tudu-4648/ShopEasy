@@ -1,16 +1,16 @@
 import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image } from "react-native";
 import { Edit3, MapPin, Package, Settings, LogOut, Clock, CalendarDays } from "lucide-react-native";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { setUser } from "@/store/reducers/authReducer";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useRouter } from "expo-router";
+import { Link, useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 
 const ProfileScreen = () => {
   const dispatch = useDispatch();
   const router = useRouter();
-
+  const { loggedUser } = useSelector((state) => state.entities.authReducer);
   const handleLogout = async () => {
     try {
       await AsyncStorage.removeItem("user");
@@ -20,7 +20,9 @@ const ProfileScreen = () => {
       console.error("Error logging out:", error);
     }
   };
-
+if (!loggedUser) {
+  return <Text>Loading...</Text>;
+}
   return (
     <ScrollView style={styles.container}>
       <LinearGradient colors={["#4A6FFF", "#83B9FF"]} style={styles.header}>
@@ -34,16 +36,16 @@ const ProfileScreen = () => {
               <Edit3 size={16} color="#FFFFFF" />
             </TouchableOpacity>
           </View>
-          <Text style={styles.profileName}>John Doe</Text>
-          <Text style={styles.profileEmail}>john.doe@example.com</Text>
+          <Text style={styles.profileName}>{loggedUser.user?.name}</Text>
+          <Text style={styles.profileEmail}>{loggedUser.user?.email}</Text>
           <View style={styles.statsContainer}>
             <View style={styles.statItem}>
-              <Text style={styles.statNumber}>24</Text>
+              <Text style={styles.statNumber}>{loggedUser.user?.visits}</Text>
               <Text style={styles.statLabel}>Total Visits</Text>
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statItem}>
-              <Text style={styles.statNumber}>42h</Text>
+              <Text style={styles.statNumber}>{Math.floor(loggedUser.user?.totalStudyTime/60)}h</Text>
               <Text style={styles.statLabel}>Study Time</Text>
             </View>
           </View>
@@ -53,7 +55,7 @@ const ProfileScreen = () => {
       <View style={styles.content}>
         {/* Quick Actions */}
         <View style={styles.quickActions}>
-          <TouchableOpacity style={styles.quickActionButton}>
+          <TouchableOpacity style={styles.quickActionButton} onPress={() => router.push('/stacks/StudyHistory')}>
             <View style={[styles.quickActionIcon, { backgroundColor: "#4A6FFF20" }]}>
               <Clock size={24} color="#4A6FFF" />
             </View>

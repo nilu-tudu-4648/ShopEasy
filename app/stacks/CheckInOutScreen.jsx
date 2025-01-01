@@ -4,7 +4,7 @@ import { Button, Text, Colors, TextField } from "react-native-ui-lib";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { formatTime } from "../../constants/helperFunc";
 import { 
   collection, 
@@ -18,17 +18,21 @@ import {
   serverTimestamp,
   increment, 
   orderBy,
-  Timestamp
+  Timestamp,
+  limit,
+  arrayUnion
 } from "firebase/firestore";
 import { db } from "../firebase/firebaseConfig";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
+import { setUser } from "@/store/reducers/authReducer";
 const CheckInOutScreen = () => {
   const [state, setState] = useState({
     selectedTable: null,
     isCheckedIn: false,
     timer: 0,
     checkInTime: null,
-    selectedRoom: "A",
+    selectedRoom: "A", 
     searchQuery: "",
     selectedFloor: 1,
     loading: false,
@@ -37,15 +41,19 @@ const CheckInOutScreen = () => {
   });
   
   const { loggedUser } = useSelector((state) => state.entities.authReducer);
-  
+  const dispatch = useDispatch();
   // Memoized state setters to reduce rerenders
   const setters = useMemo(() => ({
     setSelectedTable: (value) => setState(prev => ({ ...prev, selectedTable: value })),
     setLoading: (value) => setState(prev => ({ ...prev, loading: value })),
     setTables: (value) => setState(prev => ({ ...prev, tables: value })),
     setSearchQuery: (value) => setState(prev => ({ ...prev, searchQuery: value })),
-    setSelectedRoom: (value) => setState(prev => ({ ...prev, selectedRoom: value })),
-    setSelectedFloor: (value) => setState(prev => ({ ...prev, selectedFloor: value })),
+    setSelectedRoom: (value) => {
+      setState(prev => ({ ...prev, selectedRoom: value, selectedTable: null }));
+    },
+    setSelectedFloor: (value) => {
+      setState(prev => ({ ...prev, selectedFloor: value, selectedTable: null }));
+    },
     setCheckInHistory: (value) => setState(prev => ({ ...prev, checkInHistory: value })),
     setTimer: (value) => setState(prev => ({ ...prev, timer: value })),
     startCheckIn: (table, time) => setState(prev => ({
@@ -66,7 +74,7 @@ const CheckInOutScreen = () => {
 
   // Memoized Firebase queries
   const queries = useMemo(() => ({
-    getCurrentBooking: () => doc(db, 'users', loggedUser.user.id),
+    getCurrentBooking: () => doc(db, 'users', loggedUser?.user?.id),
     getTablesQuery: (room, floor) => query(
       collection(db, 'tables'),
       where('room', '==', room),
@@ -79,18 +87,22 @@ const CheckInOutScreen = () => {
     getTodayBookingsQuery: (userId) => {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
+      
+      // Use base query without ordering to avoid index requirement
       return query(
         collection(db, 'bookings'),
         where('userId', '==', userId),
         where('createdAt', '>=', Timestamp.fromDate(today)),
-        orderBy('createdAt', 'desc')
+        limit(50)
       );
     }
-  }), [loggedUser.user.id]);
+  }), [loggedUser?.user?.id]);
 
   // Memoized data fetching functions
   const dataFetchers = useMemo(() => ({
     fetchCurrentBooking: async () => {
+      if (!loggedUser?.user?.id) return;
+      
       try {
         const userDoc = await getDoc(queries.getCurrentBooking());
         const currentBooking = userDoc.data()?.currentBooking;
@@ -155,6 +167,8 @@ const CheckInOutScreen = () => {
     },
 
     fetchHistory: async () => {
+      if (!loggedUser?.user?.id) return;
+
       try {
         const snapshot = await getDocs(
           queries.getTodayBookingsQuery(loggedUser.user.id),
@@ -167,28 +181,26 @@ const CheckInOutScreen = () => {
             id: doc.id,
             ...doc.data(),
             time: doc.data().createdAt.toDate().toISOString()
-          }));
+          }))
         
         setters.setCheckInHistory(history);
       } catch (error) {
-        if (error.code === 'failed-precondition' || error.message.includes('requires an index')) {
-          Alert.alert(
-            'One-time Setup Required',
-            'Please wait while we set up the database index. This may take a few minutes. Try again shortly.'
-          );
-        } else {
-          console.error('Error fetching history:', error);
-          Alert.alert('Error', 'Failed to load check-in history');
-        }
+        console.error('Error fetching history:', error);
+        Alert.alert('Error', 'Failed to load check-in history');
       }
     }
-  }), [queries, state.selectedRoom, state.selectedFloor, setters, loggedUser.user.id]);
+  }), [queries, state.selectedRoom, state.selectedFloor, setters, loggedUser?.user?.id]);
 
   // Memoized handlers
   const handlers = useMemo(() => ({
     handleCheckIn: async () => {
       if (!state.selectedTable) {
         Alert.alert('Error', 'Please select a table');
+        return;
+      }
+
+      if (!loggedUser?.user?.id) {
+        Alert.alert('Error', 'User not logged in');
         return;
       }
   
@@ -216,6 +228,13 @@ const CheckInOutScreen = () => {
             tableId: state.selectedTable,
             startTime: firestoreTimestamp
           },
+          'usage.visitHistory': arrayUnion({
+            date: firestoreTimestamp,
+            tableId: state.selectedTable,
+            room: state.selectedRoom,
+            floor: state.selectedFloor
+          }),
+          'usage.lastVisit': firestoreTimestamp,
           visits: increment(1)
         });
   
@@ -230,6 +249,11 @@ const CheckInOutScreen = () => {
     },
 
     handleCheckOut: async () => {
+      if (!loggedUser?.user?.id) {
+        Alert.alert('Error', 'User not logged in');
+        return;
+      }
+
       try {
         setters.setLoading(true);
         const now = new Date();
@@ -246,11 +270,30 @@ const CheckInOutScreen = () => {
             }),
             updateDoc(queries.getCurrentBooking(), {
               currentBooking: null,
-              totalStudyTime: increment(state.timer)
+              'usage.totalHours': increment(state.timer / 3600),
+              'usage.currentMonthHours': increment(state.timer / 3600),
+              'usage.averageSessionLength': (userDoc.data()?.usage?.averageSessionLength || 0 + state.timer) / 2
             })
           ]);
         }
-  
+        // Get updated user data after checkout
+        const updatedUserDoc = await getDoc(queries.getCurrentBooking());
+        const updatedUserData = updatedUserDoc.data();
+        // Update AsyncStorage with latest user data
+          await AsyncStorage.setItem('user', JSON.stringify({
+          user: {
+            ...updatedUserData,
+            id: loggedUser.user.id
+          }
+        }));
+
+        // Update Redux store with latest user data
+        dispatch(setUser({
+          user: {
+            ...updatedUserData,
+            id: loggedUser.user.id
+          }
+        }));
         setters.endCheckIn();
         await Promise.all([dataFetchers.fetchTables(), dataFetchers.fetchHistory()]);
       } catch (error) {
@@ -260,7 +303,7 @@ const CheckInOutScreen = () => {
         setters.setLoading(false);
       }
     }
-  }), [state, setters, queries, loggedUser.user.id, dataFetchers]);
+  }), [state, setters, queries, loggedUser?.user?.id, dataFetchers]);
 
   // Timer effect
   useEffect(() => {
@@ -294,7 +337,6 @@ const CheckInOutScreen = () => {
     [state.tables, state.searchQuery]
   );
 
-
   // Your existing FilterSection and HistorySection components remain the same
   const FilterSection = useCallback(() => (
     <View style={styles.filterContainer}>
@@ -320,7 +362,7 @@ const CheckInOutScreen = () => {
                 color: state.selectedRoom === room ? Colors.white : Colors.primary,
               }}
               style={styles.roomButton}
-              onPress={() => setSelectedRoom(room)}
+              onPress={() => setters.setSelectedRoom(room)}
             />
           ))}
         </View>
@@ -336,7 +378,7 @@ const CheckInOutScreen = () => {
                 color: state.selectedFloor === floor ? Colors.white : Colors.primary,
               }}
               style={styles.floorButton}
-              onPress={() => setSelectedFloor(floor)}
+              onPress={() => setters.setSelectedFloor(floor)}
             />
           ))}
         </View>
@@ -357,36 +399,7 @@ const CheckInOutScreen = () => {
         </View>
       </View>
     </View>
- ), [state.searchQuery, setters.setSearchQuery]);
-
- const HistorySection = useCallback(() => (
-  <View style={styles.historyContainer}>
-      <Text style={styles.historyTitle}>Today's Activity</Text>
-      {state.checkInHistory.length === 0 ? (
-        <Text style={styles.noHistoryText}>No activity today</Text>
-      ) : (
-        state.checkInHistory.map((entry, index) => (
-          <View key={index} style={styles.historyItem}>
-            <Icon
-              name={entry.status === "active" ? "login" : "logout"}
-              size={20}
-              color={entry.status === "active" ? Colors.primary : Colors.error}
-            />
-            <View style={styles.historyDetails}>
-              <Text style={styles.historyText}>
-                {entry.status === "active" ? "Checked in to" : "Checked out from"}{" "}
-                Table {entry.tableId}
-              </Text>
-              <Text style={styles.historyTime}>
-                {entry.createdAt?.toDate().toLocaleTimeString() || 'Time not available'}
-                {entry.actualDuration &&  (`Duration: ${formatTime.getDuration(entry.actualDuration)}`)}
-              </Text>
-            </View>
-          </View>
-        ))
-      )}
-    </View>
-  ), [state.checkInHistory]);
+ ), [state.searchQuery, state.selectedRoom, state.selectedFloor, setters]);
 
   return (
     <ScrollView>
@@ -419,12 +432,8 @@ const CheckInOutScreen = () => {
             disabled={(!state.selectedTable && !state.isCheckedIn) || state.loading}
             onPress={state.isCheckedIn ? handlers.handleCheckOut : handlers.handleCheckIn}
           >
-            {state.loading ? (
+            {state.loading && (
               <ActivityIndicator color={state.isCheckedIn ? Colors.error : Colors.primary} />
-            ) : (
-              <Text style={styles.buttonText}>
-                {state.isCheckedIn ? "Check Out" : "Check In"}
-              </Text>
             )}
           </Button>
 
@@ -469,8 +478,6 @@ const CheckInOutScreen = () => {
               ))}
             </View>
           </ScrollView>
-
-          {state.checkInHistory.length > 0 && <HistorySection />}
         </SafeAreaView>
       </SafeAreaView>
     </ScrollView>

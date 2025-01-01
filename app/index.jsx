@@ -23,7 +23,6 @@ export default function Index() {
         const userString = await AsyncStorage.getItem("user");
         if (userString) {
           const user = JSON.parse(userString);
-          console.log(user,'initapp')
           dispatch(setUser(user));
         }
 
