@@ -66,7 +66,6 @@ const LoginScreen = () => {
       await updateDoc(doc(db, 'users', userCredential.user.uid), {
         lastLoginAt: new Date(),
       });
-    console.log(userData,'Login')
       // Save to local storage if remember me is checked
       if (rememberMe) {
         await AsyncStorage.setItem('user', JSON.stringify({
@@ -224,7 +223,7 @@ const LoginScreen = () => {
           <View style={styles.headerContainer}>
             <Text style={styles.title}>Welcome Back!</Text>
             <Text style={styles.subtitle}>
-              Sign in to continue using DeskTime
+              Sign in to continue using GymGenius
             </Text>
           </View>
 

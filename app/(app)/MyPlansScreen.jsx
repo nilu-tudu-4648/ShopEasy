@@ -6,8 +6,10 @@ import {
   Card,
   Button,
   Colors,
+  Dialog,
+  TextField,
+  PanningProvider
 } from 'react-native-ui-lib';
-import { LinearGradient } from 'expo-linear-gradient';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useSelector } from 'react-redux';
 
@@ -19,145 +21,135 @@ Colors.loadColors({
   cardBg: '#FFFFFF',
   success: '#4CAF50',
   error: '#FF5252',
-  accent: '#FFB74D'
+  accent: '#FFB74D',
+  gold: '#FFD700'
 });
 
-export default MyPlansScreen = () => {
+const MyPlansScreen = () => {
   const { loggedUser } = useSelector((state) => state.entities.authReducer);
-  console.log(JSON.stringify(loggedUser, null, 2));
-  const [userStats, setUserStats] = useState({
-    hoursLeft: 0,
-    daysLeft: 0,
-    totalStudyTime: 0,
-    visits: 0,
-    currentPlan: null,
-    planExpiry: null
+  const [showDialog, setShowDialog] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState(null);
+  const [editedPlan, setEditedPlan] = useState({
+    name: '',
+    price: '',
+    features: []
+  });
+  const [gymStats, setGymStats] = useState({
+    totalMembers: 0,
+    activeMembers: 0,
+    revenue: 0,
+    premiumMembers: 0,
+    basicMembers: 0,
+    goldMembers: 0
   });
 
-  useEffect(() => {
-    if (loggedUser?.user?.plan) {
-      const plan = loggedUser.user.plan;
-      const hoursLeft = plan.hoursTotal - plan.hoursUsed;
-      const today = new Date();
-      
-      // Handle the endDate from Firestore timestamp
-      const endDate = plan.endDate ? new Date(plan.endDate) : null;
-      const daysLeft = endDate ? Math.ceil((endDate - today) / (1000 * 60 * 60 * 24)) : 0;
-
-      setUserStats({
-        hoursLeft: Math.max(0, Math.round(hoursLeft || 0)),
-        daysLeft: Math.max(0, daysLeft),
-        totalStudyTime: loggedUser.user.totalStudyTime || 0,
-        visits: loggedUser.user.visits || 0,
-        currentPlan: plan.name || 'No Active Plan',
-        planExpiry: endDate ? endDate.toLocaleDateString('en-US', {
-          month: 'long',
-          day: 'numeric',
-          year: 'numeric'
-        }) : 'Not Started'
-      });
-    }
-  }, [loggedUser]);
-
-  const plans = [
+  const [plans, setPlans] = useState([
     {
-      name: 'Premium Monthly',
+      name: 'Gold Membership',
+      price: '$49.99',
+      features: [
+        { icon: 'crown', text: 'VIP Access' },
+        { icon: 'dumbbell', text: '24/7 Gym Access' },
+        { icon: 'account-supervisor', text: 'Personal Training' },
+        { icon: 'star', text: 'All Classes' },
+        { icon: 'spa', text: 'Spa & Sauna' }
+      ],
+      memberCount: 0,
+      color: Colors.gold
+    },
+    {
+      name: 'Premium Membership', 
       price: '$29.99',
       features: [
-        { icon: 'clock-check', text: 'Unlimited Hours' },
-        { icon: 'map-marker-multiple', text: 'All Locations' },
-        { icon: 'star', text: 'Priority Booking' },
-        { icon: 'desk', text: 'Reserved Seating' },
-        { icon: 'wifi', text: 'High-Speed WiFi' }
+        { icon: 'dumbbell', text: 'Full Gym Access' },
+        { icon: 'account-supervisor', text: 'Personal Training' },
+        { icon: 'star', text: 'Group Classes' },
+        { icon: 'shower', text: 'Locker Room Access' },
+        { icon: 'water', text: 'Swimming Pool' }
       ],
-      current: loggedUser?.user?.plan?.name === 'Premium Monthly',
+      memberCount: 0,
       color: Colors.primary
     },
     {
-      name: 'Basic Monthly',
-      price: '$19.99',
+      name: 'Basic Membership',
+      price: '$19.99', 
       features: [
-        { icon: 'clock', text: '40 Hours/Month' },
-        { icon: 'map-marker', text: 'Main Location Only' },
-        { icon: 'bookmark', text: 'Standard Booking' },
-        { icon: 'desk', text: 'Open Seating' },
-        { icon: 'wifi', text: 'Standard WiFi' }
+        { icon: 'dumbbell', text: 'Basic Gym Access' },
+        { icon: 'clock', text: 'Limited Hours' },
+        { icon: 'account-group', text: 'Group Classes' },
+        { icon: 'shower', text: 'Basic Amenities' },
+        { icon: 'lock', text: 'No Pool Access' }
       ],
-      current: loggedUser?.user?.plan?.name === 'Basic Monthly',
+      memberCount: 0,
       color: Colors.accent
     }
-  ];
+  ]);
 
-  const handlePlanSelect = async (planName) => {
-    // TODO: Implement plan selection logic
-    console.log('Selected plan:', planName);
+  useEffect(() => {
+    if (loggedUser?.user?.gymData) {
+      const gymData = loggedUser.user.gymData;
+      
+      setGymStats({
+        totalMembers: gymData.totalMembers || 0,
+        activeMembers: gymData.activeMembers || 0,
+        revenue: gymData.monthlyRevenue || 0,
+        premiumMembers: gymData.premiumMembers || 0,
+        basicMembers: gymData.basicMembers || 0,
+        goldMembers: gymData.goldMembers || 0
+      });
+
+      // Update member counts in plans
+      setPlans(prevPlans => prevPlans.map(plan => {
+        if (plan.name === 'Gold Membership') {
+          return {...plan, memberCount: gymData.goldMembers || 0};
+        } else if (plan.name === 'Premium Membership') {
+          return {...plan, memberCount: gymData.premiumMembers || 0};
+        } else if (plan.name === 'Basic Membership') {
+          return {...plan, memberCount: gymData.basicMembers || 0};
+        }
+        return plan;
+      }));
+    }
+  }, [loggedUser]);
+
+  const handlePlanManage = async (plan) => {
+    setSelectedPlan(plan);
+    setEditedPlan({
+      name: plan.name,
+      price: plan.price,
+      features: [...plan.features]
+    });
+    setShowDialog(true);
   };
 
-  const calculateUsagePercentage = () => {
-    const hoursUsed = loggedUser?.user?.plan?.hoursUsed || 0;
-    const hoursTotal = loggedUser?.user?.plan?.hoursTotal || 1;
-    return Math.min((hoursUsed / hoursTotal) * 100, 100);
+  const handleSaveChanges = () => {
+    setPlans(prevPlans => 
+      prevPlans.map(plan => 
+        plan.name === selectedPlan.name ? {
+          ...plan,
+          name: editedPlan.name,
+          price: editedPlan.price,
+          features: editedPlan.features
+        } : plan
+      )
+    );
+    setShowDialog(false);
+  };
+
+  const calculateMembershipPercentage = (memberCount) => {
+    return Math.round((memberCount / gymStats.totalMembers) * 100) || 0;
   };
 
   return (
     <ScrollView style={styles.container}>
-      <LinearGradient colors={['#4A6FFF', '#83B9FF']} style={styles.header}>
-        <View style={styles.headerContent}>
-          <Text style={styles.headerTitle}>My Plans</Text>
-          <Text style={styles.headerSubtitle}>Manage your subscription</Text>
-          
-          <View style={styles.statsContainer}>
-            <View style={styles.statItem}>
-              <Text style={styles.statValue}>{userStats.hoursLeft}</Text>
-              <Text style={styles.statLabel}>Hours Left</Text>
-            </View>
-            <View style={styles.statDivider} />
-            <View style={styles.statItem}>
-              <Text style={styles.statValue}>{userStats.daysLeft}</Text>
-              <Text style={styles.statLabel}>Days Left</Text>
-            </View>
-          </View>
-        </View>
-      </LinearGradient>
-
       <View style={styles.content}>
-        {/* Current Plan Card */}
-        <View style={styles.currentPlanSection}>
-          <Text style={styles.sectionTitle}>Current Plan</Text>
-          <Card style={styles.currentPlanCard}>
-            <View style={styles.planHeader}>
-              <View>
-                <Text style={styles.planName}>{userStats.currentPlan}</Text>
-                <Text style={styles.planExpiry}>Active until {userStats.planExpiry}</Text>
-              </View>
-              <Text style={styles.planPrice}>
-                {loggedUser?.user?.plan?.price 
-                  ? `$${loggedUser.user.plan.price}` 
-                  : 'N/A'
-                }
-              </Text>
-            </View>
-            <View style={styles.usageBar}>
-              <View 
-                style={[
-                  styles.usageProgress, 
-                  { width: `${calculateUsagePercentage()}%` }
-                ]} 
-              />
-            </View>
-            <Text style={styles.usageText}>
-              {userStats.hoursLeft} hours remaining this month
-            </Text>
-          </Card>
-        </View>
-
-        {/* Available Plans */}
-        <Text style={styles.sectionTitle}>Available Plans</Text>
+        {/* Membership Plans Overview */}
+        <Text style={styles.sectionTitle}>Membership Plans Overview</Text>
         {plans.map((plan, index) => (
           <Card key={index} style={styles.planCard}>
             <View style={[styles.planBadge, { backgroundColor: plan.color + '15' }]}>
               <Text style={[styles.planBadgeText, { color: plan.color }]}>
-                {plan.current ? 'Current Plan' : 'Available'}
+                {plan.memberCount} Members
               </Text>
             </View>
             
@@ -176,22 +168,93 @@ export default MyPlansScreen = () => {
                 </View>
               ))}
             </View>
+
+            <View style={styles.membershipStats}>
+              <Text style={styles.membershipText}>
+                {calculateMembershipPercentage(plan.memberCount)}% of total members
+              </Text>
+              <View style={styles.usageBar}>
+                <View 
+                  style={[
+                    styles.usageProgress, 
+                    { 
+                      backgroundColor: plan.color,
+                      width: `${calculateMembershipPercentage(plan.memberCount)}%`
+                    }
+                  ]} 
+                />
+              </View>
+            </View>
             
-            {!plan.current && (
-              <Button
-                label="Select Plan"
-                backgroundColor={plan.color}
-                style={styles.selectButton}
-                labelStyle={styles.buttonLabel}
-                onPress={() => handlePlanSelect(plan.name)}
-              />
-            )}
+            <Button
+              label="Edit Plan"
+              backgroundColor={plan.color}
+              style={styles.selectButton}
+              labelStyle={styles.buttonLabel}
+              onPress={() => handlePlanManage(plan)}
+            />
           </Card>
         ))}
       </View>
+
+      <Dialog
+        visible={showDialog}
+        onDismiss={() => setShowDialog(false)}
+        panDirection={PanningProvider.Directions.DOWN}
+      >
+        <View style={styles.dialogContent}>
+          <Text style={styles.dialogTitle}>Edit Plan</Text>
+          
+          <TextField
+            placeholder="Plan Name"
+            value={editedPlan.name}
+            onChangeText={(text) => setEditedPlan({...editedPlan, name: text})}
+            style={styles.input}
+          />
+          
+          <TextField
+            placeholder="Price"
+            value={editedPlan.price}
+            onChangeText={(text) => setEditedPlan({...editedPlan, price: text})}
+            style={styles.input}
+          />
+
+          {editedPlan.features.map((feature, index) => (
+            <View key={index} style={styles.featureInput}>
+              <TextField
+                placeholder="Feature Text"
+                value={feature.text}
+                onChangeText={(text) => {
+                  const newFeatures = [...editedPlan.features];
+                  newFeatures[index].text = text;
+                  setEditedPlan({...editedPlan, features: newFeatures});
+                }}
+                style={styles.input}
+              />
+            </View>
+          ))}
+
+          <View style={styles.dialogButtons}>
+            <Button
+              label="Cancel"
+              outline
+              onPress={() => setShowDialog(false)}
+              style={styles.dialogButton}
+            />
+            <Button
+              label="Save Changes"
+              backgroundColor={Colors.primary}
+              onPress={handleSaveChanges}
+              style={styles.dialogButton}
+            />
+          </View>
+        </View>
+      </Dialog>
     </ScrollView>
   );
 };
+
+export default MyPlansScreen;
 
 const styles = StyleSheet.create({
   container: {
@@ -300,16 +363,20 @@ const styles = StyleSheet.create({
     height: 8,
     backgroundColor: '#F0F0F0',
     borderRadius: 4,
-    marginVertical: 16,
+    marginVertical: 8,
   },
   usageProgress: {
     height: '100%',
     backgroundColor: Colors.primary,
     borderRadius: 4,
   },
-  usageText: {
+  membershipStats: {
+    marginTop: 16,
+  },
+  membershipText: {
     fontSize: 14,
     color: Colors.textGrey,
+    marginBottom: 4,
   },
   featuresList: {
     marginTop: 16,
@@ -336,5 +403,36 @@ const styles = StyleSheet.create({
   buttonLabel: {
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  dialogContent: {
+    padding: 20,
+    backgroundColor: Colors.white,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+  },
+  dialogTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 20,
+    color: Colors.textGrey,
+  },
+  input: {
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#E5E5E5',
+    borderRadius: 8,
+    padding: 12,
+  },
+  featureInput: {
+    marginBottom: 12,
+  },
+  dialogButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 20,
+  },
+  dialogButton: {
+    flex: 1,
+    marginHorizontal: 8,
   }
 });

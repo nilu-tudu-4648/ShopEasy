@@ -1,38 +1,26 @@
 import { Stack } from "expo-router";
 
 export default function AuthLayout() {
+  const options = {
+    headerShown: false,
+    gestureEnabled: false,
+  }
   return (
     <Stack
-      screenOptions={{ headerShown: false }}
+      screenOptions={options}
       initialRouteName="LoginScreen"
     >
       <Stack.Screen
         name="SignupScreen"
-        options={{
-          headerShown: false,
-          gestureEnabled: false,
-        }}
+        options={options}
       />
       <Stack.Screen
         name="LoginScreen"
-        options={{
-          headerShown: false,
-          gestureEnabled: false,
-        }}
+        options={options}
       />
       <Stack.Screen
         name="OtpScreen"
-        options={{
-          headerShown: false,
-          gestureEnabled: false,
-        }}
-      />
-      <Stack.Screen
-        name="SelectPlanScreen"
-        options={{
-          headerShown: false,
-          gestureEnabled: false,
-        }}
+        options={options}
       />
     </Stack>
   );

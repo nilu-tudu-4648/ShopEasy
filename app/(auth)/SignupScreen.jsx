@@ -244,7 +244,7 @@ const handleSignup = async () => {
               <View style={styles.headerContainer}>
                 <Text style={styles.title}>Create Account</Text>
                 <Text style={styles.subtitle}>
-                  Join DeskTime to manage your study space efficiently
+                  Join GymGenius to manage your gym workouts efficiently
                 </Text>
               </View>
 
