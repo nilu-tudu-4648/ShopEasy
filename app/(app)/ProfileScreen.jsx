@@ -1,16 +1,22 @@
-import React from "react";
+import React, { useState } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image } from "react-native";
-import { Edit3, MapPin, Package, Settings, LogOut, Clock, CalendarDays } from "lucide-react-native";
+import { Edit3, MapPin, Settings, LogOut, Clock, CalendarDays, Users, Building2 } from "lucide-react-native";
 import { useDispatch, useSelector } from "react-redux";
 import { setUser } from "@/store/reducers/authReducer";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Link, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
+import * as ImagePicker from 'expo-image-picker';
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { doc, updateDoc } from "firebase/firestore";
+import { storage, db } from "../firebase/firebaseConfig";
 
 const ProfileScreen = () => {
   const dispatch = useDispatch();
   const router = useRouter();
   const { loggedUser } = useSelector((state) => state.entities.authReducer);
+  const [uploading, setUploading] = useState(false);
+
   const handleLogout = async () => {
     try {
       await AsyncStorage.removeItem("user");
@@ -20,34 +26,117 @@ const ProfileScreen = () => {
       console.error("Error logging out:", error);
     }
   };
-if (!loggedUser) {
-  return <Text>Loading...</Text>;
-}
+
+  const pickImage = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.5,
+      });
+
+      if (!result.canceled) {
+        await uploadImage(result.assets[0].uri);
+      }
+    } catch (error) {
+      console.error("Error picking image:", error);
+      alert("Error selecting image");
+    }
+  };
+
+  const uploadImage = async (uri) => {
+    try {
+      setUploading(true);
+      const response = await fetch(uri);
+      const blob = await response.blob();
+
+      const filename = `profile_${loggedUser.user.uid}_${Date.now()}.jpg`;
+      const storageRef = ref(storage, `profile_images/${filename}`);
+      
+      await uploadBytes(storageRef, blob);
+      const downloadURL = await getDownloadURL(storageRef);
+
+      // Update user profile in Firestore
+      const userRef = doc(db, "users", loggedUser.user.uid);
+      await updateDoc(userRef, {
+        profileImage: downloadURL
+      });
+
+      // Update Redux state
+      dispatch(setUser({
+        ...loggedUser,
+        user: {
+          ...loggedUser.user,
+          profileImage: downloadURL
+        }
+      }));
+
+    } catch (error) {
+      console.error("Error uploading image:", error);
+      alert("Error uploading image");
+    } finally {
+      setUploading(false);
+    }
+  };
+  
+  if (!loggedUser) {
+    return <Text>Loading...</Text>;
+  }
+
+  const isAdmin = loggedUser.user?.userType === 'admin';
+
   return (
     <ScrollView style={styles.container}>
       <LinearGradient colors={["#4A6FFF", "#83B9FF"]} style={styles.header}>
         <View style={styles.headerContent}>
           <View style={styles.profileImageContainer}>
             <Image
-              source={{ uri: "https://via.placeholder.com/100" }}
+              source={{ 
+                uri: loggedUser.user?.profileImage || "https://via.placeholder.com/100"
+              }}
               style={styles.profileImage}
             />
-            <TouchableOpacity style={styles.editImageButton}>
-              <Edit3 size={16} color="#FFFFFF" />
+            <TouchableOpacity 
+              style={[styles.editImageButton]}
+              onPress={pickImage}
+              disabled={uploading}
+            >
+              {uploading ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <Edit3 size={16} color="#FFFFFF" />
+              )}
             </TouchableOpacity>
           </View>
           <Text style={styles.profileName}>{loggedUser.user?.name}</Text>
           <Text style={styles.profileEmail}>{loggedUser.user?.email}</Text>
           <View style={styles.statsContainer}>
-            <View style={styles.statItem}>
-              <Text style={styles.statNumber}>{loggedUser.user?.visits}</Text>
-              <Text style={styles.statLabel}>Total Visits</Text>
-            </View>
-            <View style={styles.statDivider} />
-            <View style={styles.statItem}>
-              <Text style={styles.statNumber}>{Math.floor(loggedUser.user?.totalStudyTime/60)}h</Text>
-              <Text style={styles.statLabel}>Study Time</Text>
-            </View>
+            {isAdmin ? (
+              <>
+                <View style={styles.statItem}>
+                  <Text style={styles.statNumber}>24</Text>
+                  <Text style={styles.statLabel}>Active Users</Text>
+                </View>
+                <View style={styles.statDivider} />
+                <View style={styles.statItem}>
+                  <Text style={styles.statNumber}>4</Text>
+                  <Text style={styles.statLabel}>Locations</Text>
+                </View>
+              </>
+            ) : (
+              <>
+                <View style={styles.statItem}>
+                  <Text style={styles.statNumber}>{loggedUser.user?.visits}</Text>
+                  <Text style={styles.statLabel}>Total Visits</Text>
+                </View>
+                <View style={styles.statDivider} />
+                <View style={styles.statItem}>
+                  <Text style={styles.statNumber}>{Math.floor(loggedUser.user?.totalStudyTime/60)}h</Text>
+                  <Text style={styles.statLabel}>Study Time</Text>
+                </View>
+              </>
+            )}
           </View>
         </View>
       </LinearGradient>
@@ -55,31 +144,52 @@ if (!loggedUser) {
       <View style={styles.content}>
         {/* Quick Actions */}
         <View style={styles.quickActions}>
-          <TouchableOpacity style={styles.quickActionButton} onPress={() => router.push('/stacks/StudyHistory')}>
-            <View style={[styles.quickActionIcon, { backgroundColor: "#4A6FFF20" }]}>
-              <Clock size={24} color="#4A6FFF" />
-            </View>
-            <Text style={styles.quickActionText}>Study History</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.quickActionButton}>
-            <View style={[styles.quickActionIcon, { backgroundColor: "#4CAF5020" }]}>
-              <CalendarDays size={24} color="#4CAF50" />
-            </View>
-            <Text style={styles.quickActionText}>Schedule</Text>
-          </TouchableOpacity>
+          {isAdmin ? (
+            <>
+              <TouchableOpacity style={styles.quickActionButton} onPress={() => router.push('/Allusers')}>
+                <View style={[styles.quickActionIcon]}>
+                  <Users size={24} color="#4A6FFF" />
+                </View>
+                <Text style={styles.quickActionText}>Manage Users</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.quickActionButton} onPress={() => router.push('/admin/Locations')}>
+                <View style={[styles.quickActionIcon]}>
+                  <Building2 size={24} color="#4A6FFF" />
+                </View>
+                <Text style={styles.quickActionText}>Locations</Text>
+              </TouchableOpacity>
+            </>
+          ) : (
+            <>
+              <TouchableOpacity style={styles.quickActionButton} onPress={() => router.push('/stacks/StudyHistory')}>
+                <View style={[styles.quickActionIcon]}>
+                  <Clock size={24} color="#4A6FFF" />
+                </View>
+                <Text style={styles.quickActionText}>Study History</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.quickActionButton}>
+                <View style={[styles.quickActionIcon]}>
+                  <CalendarDays size={24} color="#4CAF50" />
+                </View>
+                <Text style={styles.quickActionText}>Schedule</Text>
+              </TouchableOpacity>
+            </>
+          )}
         </View>
 
         {/* Menu Items */}
         <View style={styles.menuItems}>
-          <TouchableOpacity style={styles.menuItem}>
-            <View style={[styles.menuIcon, { backgroundColor: "#4A6FFF10" }]}>
-              <MapPin size={24} color="#4A6FFF" />
-            </View>
-            <View style={styles.menuTextContainer}>
-              <Text style={styles.menuText}>My Addresses</Text>
-              <Text style={styles.menuSubtext}>Manage your addresses</Text>
-            </View>
-          </TouchableOpacity>
+          {!isAdmin && (
+            <TouchableOpacity style={styles.menuItem}>
+              <View style={[styles.menuIcon, { backgroundColor: "#4A6FFF10" }]}>
+                <MapPin size={24} color="#4A6FFF" />
+              </View>
+              <View style={styles.menuTextContainer}>
+                <Text style={styles.menuText}>My Addresses</Text>
+                <Text style={styles.menuSubtext}>Manage your addresses</Text>
+              </View>
+            </TouchableOpacity>
+          )}
 
           <TouchableOpacity style={styles.menuItem}>
             <View style={[styles.menuIcon, { backgroundColor: "#4A6FFF10" }]}>
@@ -144,6 +254,9 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     borderWidth: 3,
     borderColor: "#FFFFFF",
+  },
+  adminEditButton: {
+    backgroundColor: "#FF6B6B",
   },
   profileName: {
     fontSize: 24,

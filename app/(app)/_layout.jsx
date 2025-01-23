@@ -9,11 +9,12 @@ import CustomDrawerItem from "../../components/CustomDrawerItem";
 const CustomDrawerContent = ({ state, navigation, descriptors }) => {
   const pathname = usePathname();
   const {loggedUser} = useSelector((state) => state.entities.authReducer);
+  console.log(loggedUser);
   const drawerItems = [
     {
       label: 'Home',
       icon: <Ionicons name="home-outline" size={24} color={pathname === '/HomeScreen' ? '#4A6FFF' : '#666666'} />,
-      route: '/HomeScreen'
+      route: loggedUser?.user?.userType === 'admin' ? '/AdminHome' : '/HomeScreen'
     },
     {
       label: 'Profile',

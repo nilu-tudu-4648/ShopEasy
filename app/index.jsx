@@ -46,7 +46,7 @@ export default function Index() {
     );
   }
 
-  const route = loggedUser ? "/(app)/HomeScreen" : "/(auth)/LoginScreen";
+  const route = loggedUser ? loggedUser.user.userType === 'admin' ? "/(app)/AdminHome" : "/(app)/HomeScreen" : "/(auth)/LoginScreen";
 
   return <Redirect href={route} />;
 }

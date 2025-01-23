@@ -1,15 +1,20 @@
 import React, { useEffect, useState } from 'react';
-import { ScrollView, StyleSheet } from 'react-native';
+import { ScrollView, StyleSheet, Alert, Modal } from 'react-native';
 import {
   View,
   Text,
   Card,
   Button,
   Colors,
+  TextField,
+  Dialog,
+  PanningProvider,
 } from 'react-native-ui-lib';
 import { LinearGradient } from 'expo-linear-gradient';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useSelector } from 'react-redux';
+import { doc, updateDoc, addDoc, collection, getDocs } from 'firebase/firestore';
+import { db } from '../firebase/firebaseConfig';
 
 Colors.loadColors({
   primary: '#4A6FFF',
@@ -21,10 +26,9 @@ Colors.loadColors({
   error: '#FF5252',
   accent: '#FFB74D'
 });
-
 export default MyPlansScreen = () => {
   const { loggedUser } = useSelector((state) => state.entities.authReducer);
-  console.log(JSON.stringify(loggedUser, null, 2));
+  const isAdmin = loggedUser?.user?.userType === 'admin';
   const [userStats, setUserStats] = useState({
     hoursLeft: 0,
     daysLeft: 0,
@@ -34,63 +38,148 @@ export default MyPlansScreen = () => {
     planExpiry: null
   });
 
+  const [editingPlan, setEditingPlan] = useState(null);
+  const [showAddPlanDialog, setShowAddPlanDialog] = useState(false);
+  const [newPlan, setNewPlan] = useState({
+    name: '',
+    price: '',
+    features: [
+      { icon: '', text: '' },
+      { icon: '', text: '' },
+      { icon: '', text: '' },
+      { icon: '', text: '' },
+      { icon: '', text: '' }
+    ],
+    color: Colors.primary
+  });
+
+  const [plans, setPlans] = useState([]);
+  const getPlans = async () => {
+    try {
+      const plansRef = collection(db, 'plans');
+      const plansSnapshot = await getDocs(plansRef);
+      const plansData = plansSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setPlans(plansData);
+    } catch (error) {
+      console.error('Error fetching plans:', error);
+    }
+  };
+
   useEffect(() => {
-    if (loggedUser?.user?.plan) {
+    getPlans();
+  }, []);
+
+  useEffect(() => {
+    if (loggedUser?.user?.plan && !isAdmin) {
       const plan = loggedUser.user.plan;
       const hoursLeft = plan.hoursTotal - plan.hoursUsed;
       const today = new Date();
-      
-      // Handle the endDate from Firestore timestamp
-      const endDate = plan.endDate ? new Date(plan.endDate) : null;
+      const isInfinite = plan.name === 'Premium Monthly';
+      const endDate = plan.endDate ? new Date(plan.endDate.seconds * 1000) : null;
       const daysLeft = endDate ? Math.ceil((endDate - today) / (1000 * 60 * 60 * 24)) : 0;
 
       setUserStats({
-        hoursLeft: Math.max(0, Math.round(hoursLeft || 0)),
+        hoursLeft: isInfinite ? 'Unlimited' : Math.max(0, Math.round(hoursLeft || 0)),
         daysLeft: Math.max(0, daysLeft),
         totalStudyTime: loggedUser.user.totalStudyTime || 0,
         visits: loggedUser.user.visits || 0,
         currentPlan: plan.name || 'No Active Plan',
         planExpiry: endDate ? endDate.toLocaleDateString('en-US', {
           month: 'long',
-          day: 'numeric',
+          day: 'numeric', 
           year: 'numeric'
         }) : 'Not Started'
       });
     }
   }, [loggedUser]);
 
-  const plans = [
-    {
-      name: 'Premium Monthly',
-      price: '$29.99',
-      features: [
-        { icon: 'clock-check', text: 'Unlimited Hours' },
-        { icon: 'map-marker-multiple', text: 'All Locations' },
-        { icon: 'star', text: 'Priority Booking' },
-        { icon: 'desk', text: 'Reserved Seating' },
-        { icon: 'wifi', text: 'High-Speed WiFi' }
-      ],
-      current: loggedUser?.user?.plan?.name === 'Premium Monthly',
-      color: Colors.primary
-    },
-    {
-      name: 'Basic Monthly',
-      price: '$19.99',
-      features: [
-        { icon: 'clock', text: '40 Hours/Month' },
-        { icon: 'map-marker', text: 'Main Location Only' },
-        { icon: 'bookmark', text: 'Standard Booking' },
-        { icon: 'desk', text: 'Open Seating' },
-        { icon: 'wifi', text: 'Standard WiFi' }
-      ],
-      current: loggedUser?.user?.plan?.name === 'Basic Monthly',
-      color: Colors.accent
-    }
-  ];
-
   const handlePlanSelect = async (planName) => {
-    // TODO: Implement plan selection logic
+    if (isAdmin) return;
+    // TODO: Implement plan selection logic for users
     console.log('Selected plan:', planName);
+  };
+
+  const handleEditPlan = (plan) => {
+    setEditingPlan({
+      ...plan,
+      features: [...plan.features]
+    });
+  };
+
+  const handleSavePlan = async () => {
+    try {
+      const updatedPlans = plans.map(p => 
+        p.id === editingPlan.id ? editingPlan : p
+      );
+      setPlans(updatedPlans);
+
+      const planRef = doc(db, 'plans', editingPlan.id);
+      const { id, ...planData } = editingPlan;
+      await updateDoc(planRef, planData);
+
+      Alert.alert('Success', 'Plan updated successfully');
+      setEditingPlan(null);
+    } catch (error) {
+      Alert.alert('Error', 'Failed to update plan');
+      console.error(error);
+    }
+  };
+
+  const handleAddPlan = async () => {
+    try {
+      if (!newPlan.name || !newPlan.price) {
+        Alert.alert('Error', 'Please fill in all required fields');
+        return;
+      }
+
+      const plansRef = collection(db, 'plans');
+      const docRef = await addDoc(plansRef, {
+        ...newPlan,
+        current: false,
+        createdAt: new Date()
+      });
+
+      const addedPlan = {
+        id: docRef.id,
+        ...newPlan,
+        current: false
+      };
+
+      setPlans([...plans, addedPlan]);
+
+      Alert.alert('Success', 'New plan added successfully');
+      setShowAddPlanDialog(false);
+      setNewPlan({
+        name: '',
+        price: '',
+        features: [
+          { icon: '', text: '' },
+          { icon: '', text: '' },
+          { icon: '', text: '' },
+          { icon: '', text: '' },
+          { icon: '', text: '' }
+        ],
+        color: Colors.primary
+      });
+    } catch (error) {
+      Alert.alert('Error', 'Failed to add new plan');
+      console.error(error);
+    }
+  };
+
+  const handleNewFeatureChange = (index, field, value) => {
+    const updatedFeatures = [...newPlan.features];
+    updatedFeatures[index] = {
+      ...updatedFeatures[index],
+      [field]: value
+    };
+    setNewPlan({
+      ...newPlan,
+      features: updatedFeatures
+    });
   };
 
   const calculateUsagePercentage = () => {
@@ -98,6 +187,171 @@ export default MyPlansScreen = () => {
     const hoursTotal = loggedUser?.user?.plan?.hoursTotal || 1;
     return Math.min((hoursUsed / hoursTotal) * 100, 100);
   };
+
+  const handleFeatureChange = (index, field, value) => {
+    const updatedFeatures = [...editingPlan.features];
+    updatedFeatures[index] = {
+      ...updatedFeatures[index],
+      [field]: value
+    };
+    setEditingPlan({
+      ...editingPlan,
+      features: updatedFeatures
+    });
+  };
+
+  if (isAdmin) {
+    return (
+      <ScrollView style={styles.container}>
+        <LinearGradient colors={['#4A6FFF', '#83B9FF']} style={styles.header}>
+          <View style={styles.headerContent}>
+            <Text style={styles.headerTitle}>Manage Plans</Text>
+            <Text style={styles.headerSubtitle}>Edit subscription plans</Text>
+          </View>
+        </LinearGradient>
+
+        <View style={styles.content}>
+          <Button
+            label="Add New Plan"
+            backgroundColor={Colors.success}
+            style={styles.addButton}
+            onPress={() => setShowAddPlanDialog(true)}
+          />
+
+          {plans.map((plan, index) => (
+            <Card key={index} style={styles.planCard}>
+              {editingPlan?.id === plan.id ? (
+                <View>
+                  <TextField
+                    value={editingPlan.name}
+                    onChangeText={name => setEditingPlan({...editingPlan, name})}
+                    label="Plan Name"
+                    placeholder="Enter plan name"
+                  />
+                  <TextField
+                    value={editingPlan.price}
+                    onChangeText={price => setEditingPlan({...editingPlan, price})}
+                    label="Price"
+                    placeholder="Enter price"
+                    keyboardType="numeric"
+                  />
+                  {editingPlan.features.map((feature, idx) => (
+                    <View key={idx} style={styles.featureEditContainer}>
+                      <TextField
+                        value={feature.icon}
+                        onChangeText={(value) => handleFeatureChange(idx, 'icon', value)}
+                        label={`Feature ${idx + 1} Icon`}
+                        placeholder="Enter icon name"
+                        style={styles.featureInput}
+                      />
+                      <TextField
+                        value={feature.text}
+                        onChangeText={(value) => handleFeatureChange(idx, 'text', value)}
+                        label={`Feature ${idx + 1} Text`}
+                        placeholder="Enter feature text"
+                        style={styles.featureInput}
+                      />
+                    </View>
+                  ))}
+                  <Button
+                    label="Save Changes"
+                    backgroundColor={Colors.success}
+                    style={styles.selectButton}
+                    onPress={handleSavePlan}
+                  />
+                  <Button
+                    label="Cancel"
+                    backgroundColor={Colors.error}
+                    style={styles.selectButton}
+                    onPress={() => setEditingPlan(null)}
+                  />
+                </View>
+              ) : (
+                <>
+                  <Text style={styles.planName}>{plan.name}</Text>
+                  <Text style={styles.planPrice}> ₹{plan.price}</Text>
+                  <View style={styles.featuresList}>
+                    {plan.features.map((feature, idx) => (
+                      <View key={idx} style={styles.featureItem}>
+                        <Icon name={feature.icon} size={20} color={plan.color} />
+                        <Text style={styles.featureText}>{feature.text}</Text>
+                      </View>
+                    ))}
+                  </View>
+                  <Button
+                    label="Edit Plan"
+                    backgroundColor={Colors.primary}
+                    style={styles.selectButton}
+                    onPress={() => handleEditPlan(plan)}
+                  />
+                </>
+              )}
+            </Card>
+          ))}
+        </View>
+
+        <Dialog
+          visible={showAddPlanDialog}
+          onDismiss={() => setShowAddPlanDialog(false)}
+          panDirection={PanningProvider.Directions.DOWN}
+          containerStyle={{maxHeight: '90%'}}
+        >
+          <ScrollView>
+            <View style={styles.dialogContent}>
+              <Text style={styles.dialogTitle}>Add New Plan</Text>
+              <TextField
+                value={newPlan.name}
+                onChangeText={name => setNewPlan({...newPlan, name})}
+                label="Plan Name"
+                placeholder="Enter plan name"
+                style={styles.dialogInput}
+              />
+              <TextField
+                value={newPlan.price}
+                onChangeText={price => setNewPlan({...newPlan, price})}
+                label="Price"
+                placeholder="Enter price"
+                keyboardType="numeric"
+                style={styles.dialogInput}
+              />
+              {newPlan.features.map((feature, idx) => (
+                <View key={idx} style={styles.featureEditContainer}>
+                  <TextField
+                    value={feature.icon}
+                    onChangeText={(value) => handleNewFeatureChange(idx, 'icon', value)}
+                    label={`Feature ${idx + 1} Icon`}
+                    placeholder="Enter icon name"
+                    style={styles.featureInput}
+                  />
+                  <TextField
+                    value={feature.text}
+                    onChangeText={(value) => handleNewFeatureChange(idx, 'text', value)}
+                    label={`Feature ${idx + 1} Text`}
+                    placeholder="Enter feature text"
+                    style={styles.featureInput}
+                  />
+                </View>
+              ))}
+              <View style={styles.dialogButtons}>
+                <Button
+                  label="Add Plan"
+                  backgroundColor={Colors.success}
+                  style={styles.dialogButton}
+                  onPress={handleAddPlan}
+                />
+                <Button
+                  label="Cancel"
+                  backgroundColor={Colors.error}
+                  style={styles.dialogButton}
+                  onPress={() => setShowAddPlanDialog(false)}
+                />
+              </View>
+            </View>
+          </ScrollView>
+        </Dialog>
+      </ScrollView>
+    );
+  }
 
   return (
     <ScrollView style={styles.container}>
@@ -132,7 +386,7 @@ export default MyPlansScreen = () => {
               </View>
               <Text style={styles.planPrice}>
                 {loggedUser?.user?.plan?.price 
-                  ? `$${loggedUser.user.plan.price}` 
+                  ? `₹${loggedUser.user.plan.price}` 
                   : 'N/A'
                 }
               </Text>
@@ -163,7 +417,7 @@ export default MyPlansScreen = () => {
             
             <View style={styles.planHeader}>
               <Text style={styles.planName}>{plan.name}</Text>
-              <Text style={[styles.planPrice, { color: plan.color }]}>{plan.price}</Text>
+              <Text style={[styles.planPrice, { color: plan.color }]}>{plan.price} ₹</Text>
             </View>
             
             <View style={styles.featuresList}>
@@ -336,5 +590,42 @@ const styles = StyleSheet.create({
   buttonLabel: {
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  featureEditContainer: {
+    marginVertical: 8,
+  },
+  featureInput: {
+    marginVertical: 4,
+  },
+  addButton: {
+    marginBottom: 20,
+    height: 48,
+    borderRadius: 24,
+  },
+  dialogContent: {
+    padding: 20,
+    backgroundColor: Colors.white,
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
+  },
+  dialogTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 20,
+    color: Colors.textGrey,
+  },
+  dialogInput: {
+    marginBottom: 12,
+  },
+  dialogButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 20,
+  },
+  dialogButton: {
+    flex: 1,
+    marginHorizontal: 8,
+    height: 48,
+    borderRadius: 24,
   }
 });

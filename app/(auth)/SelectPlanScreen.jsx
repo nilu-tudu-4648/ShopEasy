@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -10,13 +10,14 @@ import {
   StatusBar,
   ActivityIndicator,
   Alert,
+  Animated,
 } from 'react-native';
 import { Card, Colors } from 'react-native-ui-lib';
 import { LinearGradient } from 'expo-linear-gradient';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useRouter } from 'expo-router';
 import { useDispatch, useSelector } from 'react-redux';
-import { doc, updateDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
+import { doc, updateDoc, serverTimestamp, Timestamp, collection, getDocs } from 'firebase/firestore';
 import { db } from '../firebase/firebaseConfig';
 import { setUser } from '@/store/reducers/authReducer';
 
@@ -39,37 +40,41 @@ const SelectPlanScreen = () => {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const dispatch = useDispatch();
+  const [plans, setPlans] = useState([]);
+  const [scaleAnim] = useState(new Animated.Value(1));
 
-  const plans = [
-    {
-      id: 'premium',
-      name: 'Premium Monthly',
-      price: 29.99,
-      features: [
-        { icon: 'clock-check', text: 'Unlimited Hours' },
-        { icon: 'map-marker-multiple', text: 'All Locations' },
-        { icon: 'star', text: 'Priority Booking' },
-        { icon: 'desk', text: 'Reserved Seating' },
-        { icon: 'wifi', text: 'High-Speed WiFi' }
-      ],
-      color: Colors.primary,
-      recommended: true
-    },
-    {
-      id: 'basic',
-      name: 'Basic Monthly',
-      price: 19.99,
-      features: [
-        { icon: 'clock', text: '40 Hours/Month' },
-        { icon: 'map-marker', text: 'Main Location Only' },
-        { icon: 'bookmark', text: 'Standard Booking' },
-        { icon: 'desk', text: 'Open Seating' },
-        { icon: 'wifi', text: 'Standard WiFi' }
-      ],
-      color: Colors.accent,
-      recommended: false
+  const getPlans = async () => {
+    try {
+      const plansRef = collection(db, 'plans');
+      const plansSnapshot = await getDocs(plansRef);
+      const plansData = plansSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setPlans(plansData);
+    } catch (error) {
+      console.error('Error fetching plans:', error);
     }
-  ];
+  };
+
+  useEffect(() => {
+    getPlans();
+  }, []);
+
+  const animatePress = () => {
+    Animated.sequence([
+      Animated.timing(scaleAnim, {
+        toValue: 0.95,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+      Animated.timing(scaleAnim, {
+        toValue: 1,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  };
 
   const handlePlanSelection = async () => {
     if (!selectedPlan) {
@@ -79,6 +84,7 @@ const SelectPlanScreen = () => {
 
     try {
       setLoading(true);
+      animatePress();
       const selectedPlanData = plans.find(p => p.id === selectedPlan);
       const userId = loggedUser.user.uid;
 
@@ -107,7 +113,6 @@ const SelectPlanScreen = () => {
 
       await updateDoc(doc(db, 'users', userId), planUpdate);
 
-      // Update local user data
       const updatedUserData = {
         ...loggedUser,
         user: {
@@ -137,7 +142,12 @@ const SelectPlanScreen = () => {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" />
-      <LinearGradient colors={['#4A6FFF', '#83B9FF']} style={styles.gradient}>
+      <LinearGradient 
+        colors={['#4A6FFF', '#83B9FF']} 
+        style={styles.gradient}
+        start={{x: 0, y: 0}}
+        end={{x: 1, y: 1}}
+      >
         <ScrollView 
           bounces={false}
           showsVerticalScrollIndicator={false}
@@ -152,53 +162,64 @@ const SelectPlanScreen = () => {
 
           <View style={styles.content}>
             {plans.map((plan) => (
-              <TouchableOpacity
+              <Animated.View
                 key={plan.id}
-                onPress={() => setSelectedPlan(plan.id)}
-                activeOpacity={0.7}
+                style={[
+                  {transform: [{scale: selectedPlan === plan.id ? scaleAnim : 1}]},
+                ]}
               >
-                <Card style={[
-                  styles.planCard,
-                  selectedPlan === plan.id && styles.selectedCard
-                ]}>
-                  { (
+                <TouchableOpacity
+                  onPress={() => {
+                    setSelectedPlan(plan.id);
+                    animatePress();
+                  }}
+                  activeOpacity={0.9}
+                >
+                  <Card style={[
+                    styles.planCard,
+                    selectedPlan === plan.id && styles.selectedCard
+                  ]}>
                     <View style={[styles.recommendedBadge, { backgroundColor: plan.color + '15' }]}>
-                      {plan.recommended ? <Icon name="star" size={16} color={plan.color} /> : null}
-                      <Text style={[styles.recommendedText, { color: plan.color }]}>
-                        {plan.recommended ? 'Recommended' : ''}
+                      {plan.recommended && (
+                        <>
+                          <Icon name="star" size={16} color={plan.color} />
+                          <Text style={[styles.recommendedText, { color: plan.color }]}>
+                            Recommended
+                          </Text>
+                        </>
+                      )}
+                    </View>
+                    
+                    <View style={styles.planHeader}>
+                      <Text style={styles.planName}>{plan.name}</Text>
+                      <Text style={[styles.planPrice, { color: plan.color }]}>
+                        ₹{plan.price}
                       </Text>
                     </View>
-                  )}
-                  
-                  <View style={styles.planHeader}>
-                    <Text style={styles.planName}>{plan.name}</Text>
-                    <Text style={[styles.planPrice, { color: plan.color }]}>
-                      ${plan.price}
-                    </Text>
-                  </View>
-                  
-                  <View style={styles.featuresList}>
-                    {plan.features.map((feature, idx) => (
-                      <View key={idx} style={styles.featureItem}>
-                        <View style={[styles.featureIcon, { backgroundColor: plan.color + '15' }]}>
-                          <Icon name={feature.icon} size={20} color={plan.color} />
+                    
+                    <View style={styles.featuresList}>
+                      {plan.features.map((feature, idx) => (
+                        <View key={idx} style={styles.featureItem}>
+                          <View style={[styles.featureIcon, { backgroundColor: plan.color + '15' }]}>
+                            <Icon name={feature.icon} size={20} color={plan.color} />
+                          </View>
+                          <Text style={styles.featureText}>{feature.text}</Text>
                         </View>
-                        <Text style={styles.featureText}>{feature.text}</Text>
-                      </View>
-                    ))}
-                  </View>
+                      ))}
+                    </View>
 
-                  <View style={[
-                    styles.selectionIndicator,
-                    { borderColor: plan.color },
-                    selectedPlan === plan.id && { backgroundColor: plan.color }
-                  ]}>
-                    {selectedPlan === plan.id && (
-                      <Icon name="check" size={20} color="white" />
-                    )}
-                  </View>
-                </Card>
-              </TouchableOpacity>
+                    <View style={[
+                      styles.selectionIndicator,
+                      { borderColor: plan.color },
+                      selectedPlan === plan.id && { backgroundColor: plan.color }
+                    ]}>
+                      {selectedPlan === plan.id && (
+                        <Icon name="check" size={20} color="white" />
+                      )}
+                    </View>
+                  </Card>
+                </TouchableOpacity>
+              </Animated.View>
             ))}
 
             <TouchableOpacity
@@ -210,9 +231,12 @@ const SelectPlanScreen = () => {
               disabled={!selectedPlan || loading}
             >
               {loading ? (
-                <ActivityIndicator color="white" />
+                <ActivityIndicator color="white" size="small" />
               ) : (
-                <Text style={styles.buttonText}>Continue</Text>
+                <>
+                  <Text style={styles.buttonText}>Continue</Text>
+                  <Icon name="arrow-right" size={20} color="white" style={styles.buttonIcon} />
+                </>
               )}
             </TouchableOpacity>
           </View>
@@ -242,10 +266,13 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: 'white',
     textAlign: 'center',
+    textShadowColor: 'rgba(0, 0, 0, 0.1)',
+    textShadowOffset: {width: 1, height: 1},
+    textShadowRadius: 10,
   },
   headerSubtitle: {
     fontSize: 16,
-    color: 'rgba(255,255,255,0.8)',
+    color: 'rgba(255,255,255,0.9)',
     textAlign: 'center',
     marginTop: 8,
   },
@@ -259,6 +286,14 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     borderWidth: 2,
     borderColor: 'transparent',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   selectedCard: {
     borderColor: Colors.primary,
@@ -267,9 +302,9 @@ const styles = StyleSheet.create({
       width: 0,
       height: 4,
     },
-    shadowOpacity: 0.2,
-    shadowRadius: 5.84,
-    elevation: 5,
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 7,
   },
   recommendedBadge: {
     flexDirection: 'row',
@@ -316,6 +351,7 @@ const styles = StyleSheet.create({
   featureText: {
     fontSize: 16,
     color: Colors.textGrey,
+    flex: 1,
   },
   selectionIndicator: {
     position: 'absolute',
@@ -332,9 +368,18 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primary,
     height: 56,
     borderRadius: 28,
+    flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 20,
+    shadowColor: Colors.primary,
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
   },
   disabledButton: {
     opacity: 0.6,
@@ -343,7 +388,11 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 16,
     fontWeight: '600',
+    marginRight: 8,
   },
+  buttonIcon: {
+    marginLeft: 4,
+  }
 });
 
 export default SelectPlanScreen;

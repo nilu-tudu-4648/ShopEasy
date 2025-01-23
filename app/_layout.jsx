@@ -11,7 +11,7 @@ import {
 import { Provider } from "react-redux";
 import { store } from "@/store/configureStore";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { View, ActivityIndicator } from "react-native";
+import { View, ActivityIndicator, Text } from "react-native";
 
 // Keep the splash screen visible while we fetch resources
 SplashScreen.preventAutoHideAsync().catch(() => {
@@ -21,7 +21,8 @@ SplashScreen.preventAutoHideAsync().catch(() => {
 export default function RootLayout() {
   const colorScheme = useColorScheme();
   const [isReady, setIsReady] = useState(false);
-  
+  Text.defaultProps = Text.defaultProps || {};
+  Text.defaultProps.allowFontScaling = false;
   const [fontsLoaded] = useFonts({
     SpaceMono: require("../assets/fonts/SpaceMono-Regular.ttf"),
   });

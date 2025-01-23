@@ -19,16 +19,28 @@ import { Checkbox } from "react-native-ui-lib";
 import { useDispatch } from "react-redux";
 import { Ionicons } from "@expo/vector-icons";
 import InputField from "@/components/InputField";
-import { signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, signInWithRedirect } from 'firebase/auth';
-import { doc, getDoc, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore';
-import { auth, db } from '../firebase/firebaseConfig';
+import {
+  signInWithEmailAndPassword,
+  GoogleAuthProvider,
+  signInWithPopup,
+  signInWithRedirect,
+} from "firebase/auth";
+import {
+  doc,
+  getDoc,
+  serverTimestamp,
+  setDoc,
+  updateDoc,
+} from "firebase/firestore";
+import { auth, db } from "../firebase/firebaseConfig";
 
 const { width, height } = Dimensions.get("window");
 const isSmallDevice = width < 375;
 
 const LoginScreen = () => {
   const [formData, setFormData] = useState({
-    email: "tudunilesh3@gmail.com",
+    email: "nilunilesh84@gmail.com",
+    // email: "tudunilesh3@gmail.com",
     password: "Apple4648@",
   });
   const [showPassword, setShowPassword] = useState(false);
@@ -39,7 +51,7 @@ const LoginScreen = () => {
 
   const handleLogin = async () => {
     if (!formData.email || !formData.password) {
-      Alert.alert('Error', 'Please fill in all fields');
+      Alert.alert("Error", "Please fill in all fields");
       return;
     }
 
@@ -54,63 +66,72 @@ const LoginScreen = () => {
       );
 
       // Get additional user data from Firestore
-      const userDoc = await getDoc(doc(db, 'users', userCredential.user.uid));
-      
+      const userDoc = await getDoc(doc(db, "users", userCredential.user.uid));
+
       if (!userDoc.exists()) {
-        throw new Error('User data not found');
+        throw new Error("User data not found");
       }
 
       const userData = userDoc.data();
 
       // Update last login time
-      await updateDoc(doc(db, 'users', userCredential.user.uid), {
+      await updateDoc(doc(db, "users", userCredential.user.uid), {
         lastLoginAt: new Date(),
       });
-    console.log(userData,'Login')
+      console.log(userData, "Login");
       // Save to local storage if remember me is checked
       if (rememberMe) {
-        await AsyncStorage.setItem('user', JSON.stringify({
-          user: {
-            ...userData,
-            id: userCredential.user.uid,
-          }
-        }));
+        await AsyncStorage.setItem(
+          "user",
+          JSON.stringify({
+            user: {
+              ...userData,
+              id: userCredential.user.uid,
+            },
+          })
+        );
       }
 
       // Update Redux state
-      dispatch(setUser({
-        user: {
-          ...userData,
-          id: userCredential.user.uid,
-        }
-      }));
+      dispatch(
+        setUser({
+          user: {
+            ...userData,
+            id: userCredential.user.uid,
+          },
+        })
+      );
 
-      router.replace("/(app)/HomeScreen");
+      if (userData.userType === "admin") {
+        router.replace("/(app)/AdminHome");
+      } else {
+        router.replace("/(app)/HomeScreen");
+      }
     } catch (error) {
-      console.error('Login error:', error);
-      let errorMessage = 'Login failed';
-      
+      console.error("Login error:", error);
+      let errorMessage = "Login failed";
+
       switch (error.code) {
-        case 'auth/invalid-email':
-          errorMessage = 'Invalid email address';
+        case "auth/invalid-email":
+          errorMessage = "Invalid email address";
           break;
-        case 'auth/user-disabled':
-          errorMessage = 'This account has been disabled';
+        case "auth/user-disabled":
+          errorMessage = "This account has been disabled";
           break;
-        case 'auth/user-not-found':
-          errorMessage = 'No account found with this email';
+        case "auth/user-not-found":
+          errorMessage = "No account found with this email";
           break;
-        case 'auth/wrong-password':
-          errorMessage = 'Incorrect password';
+        case "auth/wrong-password":
+          errorMessage = "Incorrect password";
           break;
-        case 'auth/too-many-requests':
-          errorMessage = 'Too many failed attempts. Please try again later';
+        case "auth/too-many-requests":
+          errorMessage = "Too many failed attempts. Please try again later";
           break;
         default:
           errorMessage = error.message;
       }
-      
-      Alert.alert('Error', errorMessage);
+
+      Alert.alert("Error", errorMessage);
     } finally {
       setLoading(false);
     }
@@ -120,28 +141,28 @@ const LoginScreen = () => {
     try {
       setLoading(true);
       const provider = new GoogleAuthProvider();
-      
+
       // Use signInWithRedirect instead of signInWithPopup for React Native
       await signInWithRedirect(auth, provider);
-      
+
       // Get the sign-in result
       const result = await getRedirectResult(auth);
-      
+
       if (!result) {
-        throw new Error('Google sign in failed');
+        throw new Error("Google sign in failed");
       }
 
       // Check if user exists in Firestore
-      const userDoc = await getDoc(doc(db, 'users', result.user.uid));
-      
+      const userDoc = await getDoc(doc(db, "users", result.user.uid));
+
       if (!userDoc.exists()) {
         // Create new user document if first time login
         const newUser = {
           uid: result.user.uid,
           name: result.user.displayName,
           email: result.user.email,
-          phone: result.user.phoneNumber || '',
-          userType: 'user',
+          phone: result.user.phoneNumber || "",
+          userType: "user",
           isActive: true,
           visits: 0,
           totalStudyTime: 0,
@@ -149,7 +170,7 @@ const LoginScreen = () => {
           createdAt: serverTimestamp(),
           lastLoginAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
-          
+
           // Initialize with empty plan
           plan: {
             name: null,
@@ -159,8 +180,8 @@ const LoginScreen = () => {
             features: [],
             startDate: null,
             endDate: null,
-            status: 'pending',
-            autoRenew: true
+            status: "pending",
+            autoRenew: true,
           },
 
           // Initialize usage statistics
@@ -174,40 +195,34 @@ const LoginScreen = () => {
             preferences: {
               preferredLocation: null,
               preferredFloor: null,
-              preferredRoom: null
-            }
+              preferredRoom: null,
+            },
           },
-
-          // Initialize billing information
-          billing: {
-            customerId: null,
-            subscriptionId: null,
-            paymentMethod: null,
-            billingHistory: []
-          }
         };
-        
-        await setDoc(doc(db, 'users', result.user.uid), newUser);
-        
+
+        await setDoc(doc(db, "users", result.user.uid), newUser);
+
         dispatch(setUser({ user: { ...newUser, id: result.user.uid } }));
       } else {
         // Update existing user's last login
-        await updateDoc(doc(db, 'users', result.user.uid), {
+        await updateDoc(doc(db, "users", result.user.uid), {
           lastLoginAt: serverTimestamp(),
         });
-        
-        dispatch(setUser({ 
-          user: { 
-            ...userDoc.data(), 
-            id: result.user.uid 
-          } 
-        }));
+
+        dispatch(
+          setUser({
+            user: {
+              ...userDoc.data(),
+              id: result.user.uid,
+            },
+          })
+        );
       }
 
       router.replace("/(app)/HomeScreen");
     } catch (error) {
-      console.error('Google Sign In error:', error);
-      Alert.alert('Error', 'Google sign in failed. Please try again.');
+      console.error("Google Sign In error:", error);
+      Alert.alert("Error", "Google sign in failed. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -239,14 +254,16 @@ const LoginScreen = () => {
             returnKeyType="next"
             blurOnSubmit={false}
           />
-          
+
           <InputField
             label="Password"
             icon="lock-closed-outline"
             placeholder="Enter your password"
             secureTextEntry={!showPassword}
             value={formData.password}
-            onChangeText={(text) => setFormData({ ...formData, password: text })}
+            onChangeText={(text) =>
+              setFormData({ ...formData, password: text })
+            }
             returnKeyType="done"
             blurOnSubmit
             showPassword={showPassword}
@@ -282,7 +299,7 @@ const LoginScreen = () => {
           </View>
 
           <View style={styles.socialButtons}>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.socialButton}
               onPress={handleGoogleSignIn}
               disabled={loading}

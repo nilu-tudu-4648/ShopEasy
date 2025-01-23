@@ -156,14 +156,6 @@ const handleSignup = async () => {
           preferredRoom: null
         }
       },
-
-      // Initialize billing information
-      billing: {
-        customerId: null,
-        subscriptionId: null,
-        paymentMethod: null,
-        billingHistory: []
-      }
     };
 
     await setDoc(doc(db, 'users', userCredential.user.uid), userDoc);
