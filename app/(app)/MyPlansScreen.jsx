@@ -12,7 +12,8 @@ import {
 } from 'react-native-ui-lib';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useSelector } from 'react-redux';
-
+import AppButton from '../../components/AppButton';
+import AppHeader from '../../components/AppHeader';
 Colors.loadColors({
   primary: '#4A6FFF',
   secondary: '#6B8AFF', 
@@ -46,7 +47,7 @@ const MyPlansScreen = () => {
   const [plans, setPlans] = useState([
     {
       name: 'Gold Membership',
-      price: '$49.99',
+      price: '₹49.99',
       features: [
         { icon: 'crown', text: 'VIP Access' },
         { icon: 'dumbbell', text: '24/7 Gym Access' },
@@ -59,7 +60,7 @@ const MyPlansScreen = () => {
     },
     {
       name: 'Premium Membership', 
-      price: '$29.99',
+      price: '₹29.99',
       features: [
         { icon: 'dumbbell', text: 'Full Gym Access' },
         { icon: 'account-supervisor', text: 'Personal Training' },
@@ -72,7 +73,7 @@ const MyPlansScreen = () => {
     },
     {
       name: 'Basic Membership',
-      price: '$19.99', 
+      price: '₹19.99', 
       features: [
         { icon: 'dumbbell', text: 'Basic Gym Access' },
         { icon: 'clock', text: 'Limited Hours' },
@@ -141,10 +142,10 @@ const MyPlansScreen = () => {
   };
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+        <AppHeader title="Membership Plans Overview" />
       <View style={styles.content}>
         {/* Membership Plans Overview */}
-        <Text style={styles.sectionTitle}>Membership Plans Overview</Text>
         {plans.map((plan, index) => (
           <Card key={index} style={styles.planCard}>
             <View style={[styles.planBadge, { backgroundColor: plan.color + '15' }]}>
@@ -186,12 +187,19 @@ const MyPlansScreen = () => {
               </View>
             </View>
             
-            <Button
+            {/* <Button
               label="Edit Plan"
               backgroundColor={plan.color}
               style={styles.selectButton}
               labelStyle={styles.buttonLabel}
               onPress={() => handlePlanManage(plan)}
+            /> */}
+            <AppButton
+              title="Edit Plan"
+              onPress={() => handlePlanManage(plan)}
+              backgroundColor={plan.color}
+              style={styles.selectButton}
+              labelStyle={styles.buttonLabel}
             />
           </Card>
         ))}
@@ -308,7 +316,6 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: 20,
-    marginTop: -20,
   },
   sectionTitle: {
     fontSize: 20,

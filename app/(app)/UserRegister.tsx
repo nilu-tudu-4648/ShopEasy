@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -6,39 +6,42 @@ import {
   StyleSheet,
   TouchableOpacity,
   Image,
-  Platform,
-} from 'react-native';
-import { useForm, Controller } from 'react-hook-form';
-import { yupResolver } from '@hookform/resolvers/yup';
-import DateTimePicker from '@react-native-community/datetimepicker';
-import * as ImagePicker from 'react-native-image-picker';
-import { TextInput } from 'react-native-gesture-handler';
-import { Picker } from '@react-native-picker/picker';
-import { UserFormData } from '@/constants/types';
-import { userSchema } from '@/constants/schema';
-import { Colors } from 'react-native-ui-lib';
-import { LinearGradient } from 'expo-linear-gradient';
-
+} from "react-native";
+import { useForm, Controller } from "react-hook-form";
+import { yupResolver } from "@hookform/resolvers/yup";
+import DateTimePicker from "@react-native-community/datetimepicker";
+import * as ImagePicker from "react-native-image-picker";
+import { TextInput } from "react-native-gesture-handler";
+import { Picker } from "@react-native-picker/picker";
+import { UserFormData } from "@/constants/types";
+import { userSchema } from "@/constants/schema";
+import { Colors } from "react-native-ui-lib";
+import AppHeader from "@/components/AppHeader";
+import { collection, doc, serverTimestamp, setDoc } from "firebase/firestore";
+import { db } from "../firebase/firebaseConfig";
+import AppButton from "@/components/AppButton";
+import { useRouter } from "expo-router";
+import AppToast from "@/components/AppToast";
 Colors.loadColors({
-  primary: '#4A6FFF',
-  secondary: '#6B8AFF',
-  textGrey: '#666666',
-  cardBg: '#FFFFFF',
-  error: '#FF5252'
+  primary: "#4A6FFF",
+  secondary: "#6B8AFF",
+  textGrey: "#666666",
+  cardBg: "#FFFFFF",
+  error: "#FF5252",
 });
 
 const membershipPlans = [
-  { id: '1', name: 'Basic' },
-  { id: '2', name: 'Premium' },
-  { id: '3', name: 'Gold' },
+  { id: "1", name: "Basic" },
+  { id: "2", name: "Premium" },
+  { id: "3", name: "Gold" },
 ];
 
 const UserDetailScreen: React.FC = () => {
   const [showDatePicker, setShowDatePicker] = useState<{
     show: boolean;
-    field: 'dateOfBirth' | 'joinDate' | null;
+    field: "dateOfBirth" | "joinDate" | null;
   }>({ show: false, field: null });
-
+  const [loading, setLoading] = useState(false);
   const {
     control,
     handleSubmit,
@@ -47,18 +50,36 @@ const UserDetailScreen: React.FC = () => {
   } = useForm<UserFormData>({
     resolver: yupResolver(userSchema),
     defaultValues: {
-      status: 'active',
+      status: "active",
     },
   });
-
-  const onSubmit = (data: UserFormData) => {
-    console.log('Form data:', data);
-    // Handle form submission
+  const router = useRouter();
+  const onSubmit = async (data: UserFormData) => {
+    console.log("Form data:", data);
+    try {
+      setLoading(true);
+      const userRef = doc(collection(db, "users"));
+      await setDoc(userRef, {
+        ...data,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+        id: userRef.id,
+      });
+      console.log("User registered successfully");
+      AppToast.show('User registered successfully');
+      router.push("/UserList");
+      // Could add navigation/success message here
+    } catch (error) {
+      console.error("Error registering user:", error);
+      // Could add error handling/display here
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleImagePicker = () => {
     const options: ImagePicker.ImageLibraryOptions = {
-      mediaType: 'photo',
+      mediaType: "photo",
       maxWidth: 500,
       maxHeight: 500,
       quality: 0.5,
@@ -66,21 +87,21 @@ const UserDetailScreen: React.FC = () => {
 
     ImagePicker.launchImageLibrary(options, (response) => {
       if (response.assets && response.assets[0]) {
-        setValue('profilePhoto', response.assets[0].uri);
+        setValue("profilePhoto", response.assets[0].uri || "");
       }
     });
   };
 
-  const renderDatePicker = (field: 'dateOfBirth' | 'joinDate', label: string) => (
+  const renderDatePicker = (
+    field: "dateOfBirth" | "joinDate",
+    label: string
+  ) => (
     <Controller
       name={field}
       control={control}
       render={({ field: { onChange, value } }) => (
         <TouchableOpacity
-          style={[
-            styles.input,
-            errors[field] && styles.errorInput,
-          ]}
+          style={[styles.input, errors[field] && styles.errorInput]}
           onPress={() => setShowDatePicker({ show: true, field })}
         >
           <Text style={styles.dateText}>
@@ -89,6 +110,7 @@ const UserDetailScreen: React.FC = () => {
           {showDatePicker.show && showDatePicker.field === field && (
             <DateTimePicker
               value={value || new Date()}
+              maximumDate={new Date()}
               mode="date"
               display="default"
               onChange={(event, selectedDate) => {
@@ -105,24 +127,24 @@ const UserDetailScreen: React.FC = () => {
   );
 
   return (
-    <ScrollView style={styles.container}>
-      <LinearGradient
-        colors={[Colors.primary, Colors.secondary]}
-        style={styles.header}
-      >
-        <Text style={styles.headerTitle}>Register New User</Text>
-      </LinearGradient>
-
+    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+      <AppHeader title="Register New User" />
       <View style={styles.content}>
         <View style={styles.photoContainer}>
-          <TouchableOpacity onPress={handleImagePicker} style={styles.photoButton}>
+          <TouchableOpacity
+            onPress={handleImagePicker}
+            style={styles.photoButton}
+          >
             <Controller
               name="profilePhoto"
               control={control}
               render={({ field: { value } }) => (
                 <>
                   {value ? (
-                    <Image source={{ uri: value }} style={styles.profilePhoto} />
+                    <Image
+                      source={{ uri: value }}
+                      style={styles.profilePhoto}
+                    />
                   ) : (
                     <View style={styles.photoPlaceholder}>
                       <Text style={styles.photoPlaceholderText}>Add Photo</Text>
@@ -204,6 +226,7 @@ const UserDetailScreen: React.FC = () => {
                 onChangeText={onChange}
                 value={value}
                 keyboardType="phone-pad"
+                maxLength={10}
                 placeholderTextColor={Colors.textGrey}
               />
               {errors.phone && (
@@ -219,7 +242,11 @@ const UserDetailScreen: React.FC = () => {
           render={({ field: { onChange, value } }) => (
             <View style={styles.inputContainer}>
               <TextInput
-                style={[styles.input, errors.address && styles.errorInput]}
+                style={[
+                  styles.input,
+                  styles.addressInput,
+                  errors.address && styles.errorInput,
+                ]}
                 placeholder="Address"
                 onChangeText={onChange}
                 value={value}
@@ -234,14 +261,14 @@ const UserDetailScreen: React.FC = () => {
         />
 
         <View style={styles.inputContainer}>
-          {renderDatePicker('dateOfBirth', 'Date of Birth')}
+          {renderDatePicker("dateOfBirth", "Date of Birth")}
           {errors.dateOfBirth && (
             <Text style={styles.errorText}>{errors.dateOfBirth.message}</Text>
           )}
         </View>
 
         <View style={styles.inputContainer}>
-          {renderDatePicker('joinDate', 'Join Date')}
+          {renderDatePicker("joinDate", "Join Date")}
           {errors.joinDate && (
             <Text style={styles.errorText}>{errors.joinDate.message}</Text>
           )}
@@ -252,24 +279,36 @@ const UserDetailScreen: React.FC = () => {
           control={control}
           render={({ field: { onChange, value } }) => (
             <View style={styles.inputContainer}>
-              <View style={[styles.input, errors.membershipPlanId && styles.errorInput]}>
+              <View
+                style={[
+                  styles.input,
+                  errors.membershipPlanId && styles.errorInput,
+                ]}
+              >
                 <Picker
                   selectedValue={value}
                   onValueChange={onChange}
                   style={styles.picker}
                 >
-                  <Picker.Item label="Select Membership Plan" value="" />
+                  <Picker.Item
+                    style={{ fontSize: 12 }}
+                    label="Select Membership Plan"
+                    value=""
+                  />
                   {membershipPlans.map((plan) => (
                     <Picker.Item
                       key={plan.id}
                       label={plan.name}
                       value={plan.id}
+                      style={{ fontSize: 12 }}
                     />
                   ))}
                 </Picker>
               </View>
               {errors.membershipPlanId && (
-                <Text style={styles.errorText}>{errors.membershipPlanId.message}</Text>
+                <Text style={styles.errorText}>
+                  {errors.membershipPlanId.message}
+                </Text>
               )}
             </View>
           )}
@@ -286,8 +325,16 @@ const UserDetailScreen: React.FC = () => {
                   onValueChange={onChange}
                   style={styles.picker}
                 >
-                  <Picker.Item label="Active" value="active" />
-                  <Picker.Item label="Inactive" value="inactive" />
+                  <Picker.Item
+                    style={{ fontSize: 12 }}
+                    label="Active"
+                    value="active"
+                  />
+                  <Picker.Item
+                    style={{ fontSize: 12 }}
+                    label="Inactive"
+                    value="inactive"
+                  />
                 </Picker>
               </View>
               {errors.status && (
@@ -297,12 +344,11 @@ const UserDetailScreen: React.FC = () => {
           )}
         />
 
-        <TouchableOpacity
-          style={styles.submitButton}
+        <AppButton
+          title="Register User"
           onPress={handleSubmit(onSubmit)}
-        >
-          <Text style={styles.submitButtonText}>Register User</Text>
-        </TouchableOpacity>
+          loading={loading}
+        />
       </View>
     </ScrollView>
   );
@@ -311,47 +357,36 @@ const UserDetailScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
-  },
-  header: {
-    padding: 20,
-    paddingTop: 40,
-    paddingBottom: 30,
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-    textAlign: 'center'
+    backgroundColor: "#F8FAFC",
   },
   content: {
     padding: 16,
   },
   photoContainer: {
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: 20,
   },
   photoButton: {
     width: 120,
     height: 120,
     borderRadius: 60,
-    overflow: 'hidden',
+    overflow: "hidden",
     elevation: 3,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
   },
   profilePhoto: {
-    width: '100%',
-    height: '100%',
+    width: "100%",
+    height: "100%",
   },
   photoPlaceholder: {
-    width: '100%',
-    height: '100%',
+    width: "100%",
+    height: "100%",
     backgroundColor: Colors.cardBg,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     borderRadius: 60,
   },
   photoPlaceholderText: {
@@ -359,14 +394,6 @@ const styles = StyleSheet.create({
   },
   inputContainer: {
     marginBottom: 16,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 8,
-    padding: 12,
-    backgroundColor: Colors.cardBg,
-    color: '#000',
   },
   errorInput: {
     borderColor: Colors.error,
@@ -377,28 +404,29 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   dateText: {
-    color: '#000',
+    color: "#000",
+    fontSize: 14,
+  },
+  input: {
+    height: 48,
+    borderWidth: 1,
+    padding: 12,
+    borderColor: "#E2E8F0",
+    borderRadius: 8,
+    backgroundColor: Colors.cardBg,
+    color: "#000",
+    fontSize: 12,
+    justifyContent: "center",
   },
   picker: {
+    height: 48,
     margin: -8,
   },
-  submitButton: {
-    backgroundColor: Colors.primary,
-    padding: 16,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginTop: 20,
-    marginBottom: 40,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.22,
-    shadowRadius: 2.22,
-  },
-  submitButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
+  // For address input specifically
+  addressInput: {
+    height: 80,
+    textAlignVertical: "top",
+    paddingTop: 12,
   },
 });
 

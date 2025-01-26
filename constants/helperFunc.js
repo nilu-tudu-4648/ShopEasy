@@ -75,6 +75,16 @@ export const formatTime = {
     getDayName: (date = new Date()) => {
       const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
       return days[date.getDay()];
+    },
+
+    // Format date
+    formatDate: (timestamp) => {
+      const date = new Date(timestamp.seconds * 1000);
+      return date.toLocaleDateString('en-GB', {
+        day: '2-digit',
+        month: '2-digit', 
+        year: 'numeric'
+      });
     }
   };
   

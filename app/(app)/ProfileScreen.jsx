@@ -24,7 +24,7 @@ if (!loggedUser) {
   return <Text>Loading...</Text>;
 }
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       <LinearGradient colors={["#4A6FFF", "#83B9FF"]} style={styles.header}>
         <View style={styles.headerContent}>
           <View style={styles.profileImageContainer}>
@@ -36,7 +36,7 @@ if (!loggedUser) {
               <Edit3 size={16} color="#FFFFFF" />
             </TouchableOpacity>
           </View>
-          <Text style={styles.profileName}>{loggedUser.user?.name}</Text>
+          <Text style={styles.profileName}>{loggedUser.user?.firstName} {loggedUser.user?.lastName}</Text>
           <Text style={styles.profileEmail}>{loggedUser.user?.email}</Text>
           <View style={styles.statsContainer}>
             <View style={styles.statItem}>

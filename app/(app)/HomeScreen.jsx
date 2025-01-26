@@ -4,6 +4,8 @@ import { View, Text, Card, Colors } from 'react-native-ui-lib';
 import { LineChart, BarChart, PieChart } from 'react-native-chart-kit';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
+import { useSelector } from 'react-redux';
 
 Colors.loadColors({
   primary: '#4A6FFF',
@@ -32,14 +34,11 @@ export default function HomeScreen() {
       data: [2500, 3200, 2800, 4500, 3800, 2900, 3300]
     }]
   };
-
-  const membershipTypeData = {
-    labels: ['Basic', 'Premium', 'Gold'],
-    data: [30, 45, 25]
-  };
-
-  const StatCard = ({ title, value, icon, color }) => (
-    <Card style={styles.statCard}>
+  const router = useRouter();
+  const {loggedUser} = useSelector((state) => state.entities.authReducer);
+ 
+  const StatCard = ({ title, value, icon, color, onPress }) => (
+    <Card style={styles.statCard} onPress={onPress}>
       <View style={styles.statContent}>
         <View style={[styles.iconContainer, { backgroundColor: color + '15' }]}>
           <Icon name={icon} size={24} color={color} />
@@ -53,13 +52,13 @@ export default function HomeScreen() {
   );
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       <LinearGradient
         colors={[Colors.primary, Colors.secondary]}
         style={styles.header}
       >
         <Text style={styles.headerTitle}>Dashboard</Text>
-        <Text style={styles.headerSubtitle}>Welcome back, Admin!</Text>
+        <Text style={styles.headerSubtitle}>Welcome back, {loggedUser?.user?.firstName} {loggedUser?.user?.lastName}!</Text>
       </LinearGradient>
 
       <View style={styles.content}>
@@ -69,6 +68,7 @@ export default function HomeScreen() {
             value="1,234"
             icon="account-group"
             color={Colors.primary}
+            onPress={() => router.push('/(app)/UserList')}
           />
           <StatCard
             title="New Members"
@@ -78,8 +78,8 @@ export default function HomeScreen() {
           />
           <StatCard
             title="Revenue"
-            value="$15,678"
-            icon="currency-usd"
+            value="₹15,678"
+            icon="currency-inr"
             color={Colors.warning}
           />
           <StatCard

@@ -12,16 +12,16 @@ import {
   Platform,
   Dimensions,
   StatusBar,
-  Alert,
   ActivityIndicator,
 } from "react-native";
 import { Checkbox } from "react-native-ui-lib";
 import { useDispatch } from "react-redux";
 import { Ionicons } from "@expo/vector-icons";
 import InputField from "@/components/InputField";
-import { signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, signInWithRedirect } from 'firebase/auth';
+import { signInWithEmailAndPassword, GoogleAuthProvider, signInWithRedirect } from 'firebase/auth';
 import { doc, getDoc, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore';
 import { auth, db } from '../firebase/firebaseConfig';
+import AppToast from "@/components/AppToast";
 
 const { width, height } = Dimensions.get("window");
 const isSmallDevice = width < 375;
@@ -39,7 +39,7 @@ const LoginScreen = () => {
 
   const handleLogin = async () => {
     if (!formData.email || !formData.password) {
-      Alert.alert('Error', 'Please fill in all fields');
+      AppToast.show("Please fill in all fields");
       return;
     }
 
@@ -109,7 +109,7 @@ const LoginScreen = () => {
           errorMessage = error.message;
       }
       
-      Alert.alert('Error', errorMessage);
+     AppToast.show(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -206,7 +206,7 @@ const LoginScreen = () => {
       router.replace("/(app)/HomeScreen");
     } catch (error) {
       console.error('Google Sign In error:', error);
-      Alert.alert('Error', 'Google sign in failed. Please try again.');
+      AppToast.show("Google sign in failed. Please try again.");
     } finally {
       setLoading(false);
     }

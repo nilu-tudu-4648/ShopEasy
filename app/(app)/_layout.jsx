@@ -64,7 +64,7 @@ const CustomDrawerContent = () => {
             source={{ uri: "https://via.placeholder.com/60" }}
             style={styles.userImage}
           />
-          <Text style={styles.userName}>{loggedUser.user?.name}</Text>
+          <Text style={styles.userName}>{loggedUser.user?.firstName}</Text>
           <Text style={styles.userEmail}>{loggedUser.user?.email}</Text>
         </View>
       </LinearGradient>

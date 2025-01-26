@@ -77,7 +77,7 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    fontSize: Math.min(width * 0.04, 16),
+    fontSize: 14,
     color: "#000",
   },
   eyeIcon: {

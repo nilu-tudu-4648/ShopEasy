@@ -10,7 +10,6 @@ import {
   ScrollView,
   Dimensions,
   StatusBar,
-  Alert,
   ActivityIndicator,
 } from "react-native";
 import { Checkbox } from "react-native-ui-lib";
@@ -23,16 +22,18 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { setUser } from "@/store/reducers/authReducer";
 import { useDispatch } from "react-redux";
 import { LinearGradient } from "expo-linear-gradient";
+import AppToast from "@/components/AppToast";
 
 const { width, height } = Dimensions.get("window");
 const isSmallDevice = width < 375;
 
 const SignupScreen = () => {
   const [formData, setFormData] = useState({
-    name: "Nilesh",
     email: "tudunilesh3@gmail.com",
     phone: "9155186701",
     password: "Apple4648@",
+    firstName: "Nilesh",
+    lastName: "Tudu",
   });
   const [showPassword, setShowPassword] = useState(false);
   const [acceptTerms, setAcceptTerms] = useState(false);
@@ -65,10 +66,10 @@ const SignupScreen = () => {
     const newErrors = {};
 
     // Name validation
-    if (!formData.name.trim()) {
-      newErrors.name = "Name is required";
-    } else if (formData.name.length < 3) {
-      newErrors.name = "Name must be at least 3 characters";
+    if (!formData.firstName.trim()) {
+      newErrors.firstName = "First Name is required";
+    } else if (formData.firstName.length < 3) {
+      newErrors.firstName = "First Name must be at least 3 characters";
     }
 
     // Email validation
@@ -117,7 +118,8 @@ const handleSignup = async () => {
 
     const userDoc = {
       uid: userCredential.user.uid,
-      name: formData.name.trim(),
+      firstName: formData.firstName.trim(),
+      lastName: formData.lastName.trim(),
       email: formData.email.trim(),
       phone: formData.phone.trim(),
       userType: 'user',
@@ -189,12 +191,16 @@ const handleSignup = async () => {
 
   } catch (error) {
     console.error('Signup error:', error);
-    Alert.alert(
-      'Registration Failed',
-      error.code === 'auth/email-already-in-use'
-        ? 'This email is already registered. Please try signing in.'
-        : 'An error occurred during registration. Please try again.'
-    );
+    if (error.code === 'auth/email-already-in-use') {
+      AppToast.show('This email is already registered. Please try signing in.');
+    } else if (error.code === 'auth/invalid-email') {
+      AppToast.show('Please enter a valid email address.');
+    } else if (error.code === 'auth/weak-password') {
+      AppToast.show('Password is too weak. Please choose a stronger password.');
+    } else {
+      console.error('Detailed error:', error);
+      AppToast.show('An error occurred during registration. Please try again.');
+    }
   } finally {
     setLoading(false);
   }
@@ -249,17 +255,33 @@ const handleSignup = async () => {
               </View>
 
               <InputField
-                label="Full Name"
+                label="First Name"
                 icon="person-outline"
-                placeholder="Enter your full name"
-                value={formData.name}
+                placeholder="Enter your first name"
+                value={formData.firstName}
                 onChangeText={(text) => {
-                  setFormData({ ...formData, name: text });
-                  if (errors.name) {
-                    setErrors({ ...errors, name: null });
+                  setFormData({ ...formData, firstName: text });
+                  if (errors.firstName) {
+                    setErrors({ ...errors, firstName: null });
                   }
                 }}
-                error={errors.name}
+                error={errors.firstName}
+                autoCapitalize="words"
+                returnKeyType="next"
+                blurOnSubmit={false}
+              />
+              <InputField
+                label="Last Name"
+                icon="person-outline"
+                placeholder="Enter your last name"
+                value={formData.lastName}
+                onChangeText={(text) => {
+                  setFormData({ ...formData, lastName: text });
+                  if (errors.lastName) {
+                    setErrors({ ...errors, lastName: null });
+                  }
+                }}
+                error={errors.lastName}
                 autoCapitalize="words"
                 returnKeyType="next"
                 blurOnSubmit={false}
